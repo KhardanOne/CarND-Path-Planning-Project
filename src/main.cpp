@@ -180,24 +180,7 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 	
-  struct PerSocketData {
-
-	};
-
-  int port = 4567;
-
   uWS::App::WebSocketBehavior b;
-
-  b.open = [](auto* ws) {
-    std::cout << "Connected!!!" << std::endl;
-  };
-
-  b.maxPayloadLength = 16 * 1024 * 1024;
-
-  b.close = [](auto* ws, int /*code*/, std::string_view /*message*/) {
-    ws->close();
-    std::cout << "Disconnected" << std::endl;
-  };
 
 	b.message = [&map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
 		&map_waypoints_dx, &map_waypoints_dy] (auto* ws, std::string_view message, uWS::OpCode opCode) {
@@ -264,6 +247,19 @@ int main() {
     }  // end websocket if
   };
 
+  b.open = [](auto* ws) {
+    std::cout << "Connected!!!" << std::endl;
+  };
+
+  b.close = [](auto* ws, int /*code*/, std::string_view /*message*/) {
+    ws->close();
+    std::cout << "Disconnected" << std::endl;
+  };
+
+  b.maxPayloadLength = 16 * 1024 * 1024;
+
+  int port = 4567;
+  struct PerSocketData {};
   uWS::App().ws<PerSocketData>("/*", std::move(b)).listen("127.0.0.1", port, [port](auto* listen_socket) {
     if (listen_socket) {
       std::cout << "Listening on port " << port << std::endl;
