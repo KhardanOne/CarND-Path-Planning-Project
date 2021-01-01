@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 
-Map::Map(string const& file_fqn, double lap_length)
+Map::Map(string const & file_fqn, double lap_length)
 : max_s(lap_length) {
 
   std::ifstream in_map(file_fqn.c_str(), std::ifstream::in);

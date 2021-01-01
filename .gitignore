@@ -1,4 +1,6 @@
+build
 .vs
+.vscode
 *.sln
 *.vcx*
 x64
