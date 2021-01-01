@@ -9,6 +9,8 @@ struct LocalizationData {
   double d;
   double yaw;
   double speed;
+
+  int GetLane() const;
 };
 
 #endif //  VEHICLE_H

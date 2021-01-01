@@ -174,7 +174,7 @@ int main() {
             *   sequentially every .02 seconds
             */
           BehaviorPlanner planner;
-          planner.GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, prev_path);
+          planner.GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, &prev_path);
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
@@ -201,7 +201,7 @@ int main() {
     std::cout << "Disconnected" << std::endl;
   };
 
-  b.maxPayloadLength = 16 * 1024 * 1024;
+  b.maxPayloadLength = 64 * 1024 * 1024;
 
   int port = 4567;
   struct PerSocketData {};

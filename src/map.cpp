@@ -1,4 +1,5 @@
 #include "map.h"
+#include "config.h"
 #include <vector>
 #include <string>
 #include <fstream>
@@ -28,5 +29,9 @@ Map::Map(string const & file_fqn, double lap_length)
     waypoints_dx.push_back(d_x);
     waypoints_dy.push_back(d_y);
   }
-}
 
+  if (waypoints_x.size() == 0)
+    std::cout << "ERROR: missing map data. Check your path." << std::endl;
+  else if (CFG::verbose >= CFG::Important)
+    std::cout << "Map initialized with " << waypoints_x.size() << " elements." << std::endl;
+}
