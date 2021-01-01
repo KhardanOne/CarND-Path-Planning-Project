@@ -14,6 +14,7 @@
 #include "helpers.h"
 #include "json.hpp"
 
+#include "config.h"
 #include "map.h"
 #include "vehicle.h"
 #include "behavior_planner.h"
