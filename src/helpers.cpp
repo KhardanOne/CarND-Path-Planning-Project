@@ -1,4 +1,10 @@
 #include "helpers.h"
+#include "config.h"
+#include "map.h"
+
+double LaneToD(int lane) {
+  return CFG::half_lane_width + lane * CFG::lane_width;
+}
 
 string hasData(string s) {
   auto found_null = s.find("null");
@@ -24,8 +30,10 @@ double distance2(double x1, double y1, double x2, double y2) {
   return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
 }
 
-int ClosestWaypoint(double x, double y, const vector<double>& maps_x,
-  const vector<double>& maps_y) {
+int ClosestWaypoint(double x, double y, const Map & map) {
+  const vector<double> & maps_x = map.waypoints_x;
+  const vector<double> & maps_y = map.waypoints_y;
+
   double closestLen = 100000; //large number
   int closestWaypoint = 0;
 
@@ -42,9 +50,11 @@ int ClosestWaypoint(double x, double y, const vector<double>& maps_x,
   return closestWaypoint;
 }
 
-int NextWaypoint(double x, double y, double theta, const vector<double>& maps_x,
-  const vector<double>& maps_y) {
-  int closestWaypoint = ClosestWaypoint(x, y, maps_x, maps_y);
+int NextWaypoint(double x, double y, double theta, const Map & map) {
+  int closestWaypoint = ClosestWaypoint(x, y, map);
+
+  const vector<double>& maps_x = map.waypoints_x;
+  const vector<double>& maps_y = map.waypoints_y;
 
   double map_x = maps_x[closestWaypoint];
   double map_y = maps_y[closestWaypoint];
@@ -64,10 +74,11 @@ int NextWaypoint(double x, double y, double theta, const vector<double>& maps_x,
   return closestWaypoint;
 }
 
-vector<double> getFrenet(double x, double y, double theta,
-  const vector<double>& maps_x,
-  const vector<double>& maps_y) {
-  int next_wp = NextWaypoint(x, y, theta, maps_x, maps_y);
+vector<double> getFrenet(double x, double y, double theta, const Map & map) {
+  int next_wp = NextWaypoint(x, y, theta, map);
+
+  const vector<double>& maps_x = map.waypoints_x;
+  const vector<double>& maps_y = map.waypoints_y;
 
   int prev_wp;
   prev_wp = next_wp - 1;
@@ -99,7 +110,7 @@ vector<double> getFrenet(double x, double y, double theta,
 
   // calculate s value
   double frenet_s = 0;
-  for (int i = 0; i < prev_wp; ++i) {
+  for (long long i = 0; i < prev_wp; ++i) {
     frenet_s += distance(maps_x[i], maps_y[i], maps_x[i + 1], maps_y[i + 1]);
   }
 
@@ -108,16 +119,18 @@ vector<double> getFrenet(double x, double y, double theta,
   return { frenet_s,frenet_d };
 }
 
-vector<double> getXY(double s, double d, const vector<double>& maps_s,
-  const vector<double>& maps_x,
-  const vector<double>& maps_y) {
-  int prev_wp = -1;
+vector<double> getXY(double s, double d, const Map & map) {
+  const vector<double>& maps_x = map.waypoints_x;
+  const vector<double>& maps_y = map.waypoints_y;
+  const vector<double>& maps_s = map.waypoints_s;
+ 
+  long long prev_wp = -1;
 
-  while (s > maps_s[prev_wp + 1] && (prev_wp < (int)(maps_s.size() - 1))) {
+  while (s > maps_s[prev_wp + 1] && (prev_wp < ((long long)maps_s.size() - 1))) {
     ++prev_wp;
   }
 
-  int wp2 = (prev_wp + 1) % maps_x.size();
+  long long wp2 = (prev_wp + 1) % maps_x.size();
 
   double heading = atan2((maps_y[wp2] - maps_y[prev_wp]),
     (maps_x[wp2] - maps_x[prev_wp]));

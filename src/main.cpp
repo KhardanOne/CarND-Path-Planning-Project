@@ -9,8 +9,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
+#include "Eigen/Core"
+#include "Eigen/QR"
 #include "helpers.h"
 #include "json.hpp"
 
@@ -174,7 +174,7 @@ int main() {
             *   sequentially every .02 seconds
             */
           BehaviorPlanner planner;
-          planner.GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, &prev_path);
+          planner.GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, prev_path);
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;

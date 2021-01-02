@@ -13,9 +13,9 @@ void BehaviorPlanner::GetTrajectory(vector<double>& /* out */ out_x_vals,
   Map const & map,
   LocalizationData const & ego_loc,
   vector <vector<double>> const & sensor_fusion,
-  PreviousPath const * prev_path
+  PreviousPath const & prev_path
 ) const {
 
-  CreateTrajectory(out_x_vals, out_y_vals, ego_loc.GetLane(), map, ego_loc, prev_path);
+  CreateTrajectory(out_x_vals, out_y_vals, ego_loc.GetLane(), 30.0, map, ego_loc, prev_path);
 
 }
