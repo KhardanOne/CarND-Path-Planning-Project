@@ -30,14 +30,20 @@ SensorFusion::SensorFusion(vector<vector<double>> const & input, double lap_leng
   }
 }
 
-int SensorFusion::GetCarInFront(double ego_s, int lane) {
+int SensorFusion::GetCarInFront(double const & ego_s, int lane) {
   double min_dist = CFG::infinite;
-  int id = -1;
-  for (int c = 0; c < lanes[lane].size(); ++c) {
-    double target_s = cars[c].raw[SF::S];
-    target_s = (target_s < ego_s) ? target_s : target_s+max_s; //  handle lap restarts
-    min_dist = min(min_dist, target_s-ego_s);
-    id = lanes[lane][c];
+  int result = -1;
+  vector<int> & current_lane = lanes[lane];
+
+  for (size_t i_in_lane = 0; i_in_lane < current_lane.size(); ++i_in_lane) {
+    int target_idx = current_lane[i_in_lane];
+    double target_s = cars[target_idx].raw[SF::S];
+    target_s = (target_s < ego_s) ? target_s+max_s : target_s; //  handle lap restarts
+    double dist = target_s - ego_s;
+    if (dist < min_dist) {
+      min_dist = dist;
+      result = target_idx;
+    }
   }
-  return id;
+  return result;
 }

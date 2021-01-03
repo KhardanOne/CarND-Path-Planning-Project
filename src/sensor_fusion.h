@@ -28,7 +28,7 @@ class SensorFusion {
    * @param lane consider cars only in this lane
    * @output the ID of the closes car in front or -1 if the lane is empty
    */
-  int GetCarInFront(double ego_s, int lane);
+  int GetCarInFront(double const & ego_s, int lane);
 
   vector<SFCar> cars;
   vector<vector<int>> lanes;  // car ids for each lane
