@@ -35,9 +35,9 @@ int SensorFusion::GetCarInFront(double ego_s, int lane) {
   int id = -1;
   for (int c = 0; c < lanes[lane].size(); ++c) {
     double target_s = cars[c].raw[SF::S];
-    target_s = (target_s > ego_s) ? target_s : target_s+max_s; //  handle lap restarts
+    target_s = (target_s < ego_s) ? target_s : target_s+max_s; //  handle lap restarts
     min_dist = min(min_dist, target_s-ego_s);
-    id = c;
+    id = lanes[lane][c];
   }
   return id;
 }

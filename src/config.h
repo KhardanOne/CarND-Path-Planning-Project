@@ -42,6 +42,7 @@ namespace CFG {
 
   constexpr double lane_buffer = 14.0; //  distance to follow the forward car from, car center to car center
   constexpr double infinite = DBL_MAX;
+  constexpr double car_length = 5.0;
 };
 
 #endif //  CONFIG_H

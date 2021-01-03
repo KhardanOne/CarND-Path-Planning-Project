@@ -43,7 +43,6 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
     double const & car_x_present = ego.x;
     double const & car_y_present = ego.y;
     ref_yaw = deg2rad(ego.yaw);
-    constexpr double small_dist = 2.0;
     double delta_x = small_dist * cos(ref_yaw);
     double delta_y = small_dist * sin(ref_yaw);
 
@@ -54,7 +53,7 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
     spline_def_y.push_back(car_y_present - delta_y);
     spline_def_y.push_back(car_y_present);
     spline_def_y.push_back(car_y_present + delta_y);
-    // the car was stading still
+    // the car was standing still
     prev_displacement = 0.0;
   }
 
@@ -65,17 +64,17 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
   // add 3 more points in the distance
   double target_car_dist, target_car_speed;
   if (front_car_dist >= CFG::infinite) {
-    target_car_dist = 30.0;
+    target_car_dist = CFG::infinite;
     target_car_speed = CFG::preferred_speed_mps;
   }
   else {
-    target_car_dist = max(front_car_dist, small_dist * 2.1);
+    target_car_dist = max(front_car_dist, CFG::car_length);
     target_car_speed = front_car_speed;
   }
 
-  vector<double> far_wp0 = getXY(ego.s + 30.0, LaneToD(target_lane), map);
-  vector<double> far_wp1 = getXY(ego.s + 60.0, LaneToD(target_lane), map);
-  vector<double> far_wp2 = getXY(ego.s + 90.0, LaneToD(target_lane), map);
+  vector<double> far_wp0 = getXY(ego.s + 20.0, LaneToD(target_lane), map);
+  vector<double> far_wp1 = getXY(ego.s + 40.0, LaneToD(target_lane), map);
+  vector<double> far_wp2 = getXY(ego.s + 60.0, LaneToD(target_lane), map);
   spline_def_x.push_back(far_wp0[0]);
   spline_def_x.push_back(far_wp1[0]);
   spline_def_x.push_back(far_wp2[0]);
@@ -118,9 +117,10 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
   double x_ratio = target_x / target_dist;
   double last_x_displacement = prev_displacement * x_ratio;
 
-  if (target_car_speed >= ego.speed || target_car_dist > 50.0) {  // TODO: handle dist better
+  if (target_car_speed >= ego.speed || target_car_dist > 30.0) { //  TODO: improve
     // accelerate or keep speed
 
+    // preferred_delta_x *= target_car_speed / CFG::preferred_speed_mph;
     double x_disp_accel = CFG::preferred_dist_per_frame_increment * x_ratio;
     
     for (size_t i = out_x_vals.size(); i < CFG::trajectory_node_count; ++i) {
