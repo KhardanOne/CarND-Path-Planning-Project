@@ -18,7 +18,7 @@ namespace CFG {
   constexpr double preferred_speed_mps = preferred_speed_mph * 0.44704;
   // constexpr double max_speed_mph = 50.0;
   constexpr double max_accel_mpss = 9.0;
-  constexpr double preferred_accel_mpss = 6.0;
+  constexpr double preferred_accel_mpss = 5.0;
   // constexpr double max_jerk_mpsss = 9.0;
 
   constexpr int    lane_count = 3;
@@ -31,7 +31,7 @@ namespace CFG {
 
   // constexpr double max_speed_mps = max_speed_mph * 0.44704;
   constexpr double preferred_dist_per_frame = preferred_speed_mps * sim_time_step_s;
-  constexpr double preferred_dist_per_frame_increment = preferred_accel_mpss * sim_time_step_s;
+  constexpr double preferred_dist_per_frame_increment = preferred_accel_mpss * sim_time_step_s * sim_time_step_s;
   constexpr int    trajectory_node_count = int(trajectory_length_s / sim_time_step_s);
   constexpr int    trajectory_min_node_count = int(trajectory_min_length_s / sim_time_step_s);
   constexpr double half_lane_width = lane_width / 2.0;

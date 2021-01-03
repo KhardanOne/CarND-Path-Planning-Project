@@ -19,6 +19,7 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
   int prev_node_count = (int)prev_path.x_vals.size();
   long long nodes_to_keep = min(prev_node_count, CFG::trajectory_min_node_count);
   double ref_yaw = 0.0;
+  double prev_movement = 0.0;  // distance between last and penultimate positions
 
   // define the spline
   vector<double> spline_def_x;
@@ -32,6 +33,7 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
     spline_def_y.push_back(prev_path.y_vals[nodes_to_keep - 1]);
     ref_yaw = atan2(spline_def_y[2] - spline_def_y[1], spline_def_x[2] - spline_def_x[1]);
     --nodes_to_keep;  // without this the last node will be added twice, causing problems
+    prev_movement = distance(spline_def_x[1], spline_def_y[1], spline_def_x[2], spline_def_y[2]);
   }
   else {  // the car is the ref point
     // calculate one past and one future point
@@ -49,6 +51,7 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
     spline_def_y.push_back(car_y_present - delta_y);
     spline_def_y.push_back(car_y_present);
     spline_def_y.push_back(car_y_present + delta_y);
+    prev_movement = 0.0;
   }
 
   double ref_x = spline_def_x[1];
@@ -92,13 +95,20 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
   constexpr double target_x = 30.0;
   double target_y = s(target_x);
   double target_dist = sqrt(target_x * target_x + target_y * target_y);
-  double x_add_on = 0.0;
+  double x_progress = 0.0;
   double N = target_dist / CFG::preferred_dist_per_frame;
+  double preferred_delta_x = target_x / N;
+  double x_ratio = target_x / target_dist;
+  double last_x_inc = prev_movement * x_ratio;
+  double x_inc_accel = CFG::preferred_dist_per_frame_increment * x_ratio;
 
   for (size_t i = out_x_vals.size(); i < 50; ++i) {
-    double x = x_add_on + (target_x / N);
+    double x_inc = (last_x_inc < preferred_delta_x) ?
+      min(last_x_inc + x_inc_accel , preferred_delta_x) : preferred_delta_x;
+    last_x_inc = x_inc;
+    double x = x_progress + x_inc;
     double y = s(x);
-    x_add_on = x;
+    x_progress = x;
 
     // transform coordinates back
     double delta_x = x;
@@ -111,8 +121,6 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
     out_x_vals.push_back(x);
     out_y_vals.push_back(y);
   }
-
-  double & debug_dummy_for_brakepoint = target_y;
 }
 
 //void CreateTrajectory(vector<double>& /* out */ out_x_vals,
