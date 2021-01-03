@@ -11,7 +11,7 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
   vector<double>& /* out */ out_y_vals,
   int target_lane,
   double front_car_dist,
-  double front_car_speed,
+  double front_car_speed_mps,
   Map const& map,
   LocalizationData const& ego,
   PreviousPath const& prev_path) {
@@ -62,19 +62,19 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
   double ref_y = spline_def_y[1];
 
   // add 3 more points in the distance
-  double target_car_dist, target_car_speed;
+  double target_car_dist, target_car_speed_mps;
   if (front_car_dist >= CFG::infinite) {
     target_car_dist = CFG::infinite;
-    target_car_speed = CFG::preferred_speed_mps;
+    target_car_speed_mps = CFG::preferred_speed_mps;
   }
   else {
     target_car_dist = max(front_car_dist, CFG::car_length);
-    target_car_speed = front_car_speed;
+    target_car_speed_mps = front_car_speed_mps;
   }
 
-  vector<double> far_wp0 = getXY(ego.s + 20.0, LaneToD(target_lane), map);
-  vector<double> far_wp1 = getXY(ego.s + 40.0, LaneToD(target_lane), map);
-  vector<double> far_wp2 = getXY(ego.s + 60.0, LaneToD(target_lane), map);
+  vector<double> far_wp0 = getXY(ego.s + 40.0, LaneToD(target_lane), map);
+  vector<double> far_wp1 = getXY(ego.s + 60.0, LaneToD(target_lane), map);
+  vector<double> far_wp2 = getXY(ego.s + 80.0, LaneToD(target_lane), map);
   spline_def_x.push_back(far_wp0[0]);
   spline_def_x.push_back(far_wp1[0]);
   spline_def_x.push_back(far_wp2[0]);
@@ -117,10 +117,10 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
   double x_ratio = target_x / target_dist;
   double last_x_displacement = prev_displacement * x_ratio;
 
-  if (target_car_speed >= ego.speed || target_car_dist > 30.0) { //  TODO: improve
+  if (target_car_speed_mps >= ego.speed_mph * CFG::MPH_MPS || target_car_dist > 30.0) { //  TODO: improve
     // accelerate or keep speed
 
-    // preferred_delta_x *= target_car_speed / CFG::preferred_speed_mph;
+    // preferred_delta_x *= target_car_speed_mps / CFG::preferred_speed_mph;
     double x_disp_accel = CFG::preferred_dist_per_frame_increment * x_ratio;
     
     for (size_t i = out_x_vals.size(); i < CFG::trajectory_node_count; ++i) {
@@ -146,9 +146,9 @@ void CreateTrajectory(vector<double>& /* out */ out_x_vals,
   else {
     // deccelerate
 
-    double delta_speed = target_car_speed * 0.44704 - ego.speed;
+    double delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::MPH_MPS;
     // distance from target car where braking needs to be started
-    double dist_to_start_braking = delta_speed * delta_speed / CFG::preferred_deccel_mpss;
+    double dist_to_start_braking = delta_speed_mps * delta_speed_mps / CFG::preferred_deccel_mpss;
     // distance from ego car where braking needs to be started
     dist_to_start_braking = target_car_dist - dist_to_start_braking;
     double x_disp_deccel = CFG::preferred_dist_per_frame_decrement * x_ratio;

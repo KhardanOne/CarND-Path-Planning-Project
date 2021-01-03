@@ -9,6 +9,8 @@ using std::vector;
 namespace CFG {
   enum Verbose {OFF, Important, All};
 
+  constexpr double MPH_MPS = 0.44704;
+
   constexpr int    verbose = All;
 
   constexpr double trajectory_length_s = 2.0;
@@ -17,7 +19,7 @@ namespace CFG {
   constexpr double sim_time_step_s = 0.02;
 
   constexpr double preferred_speed_mph = 49.0;
-  constexpr double preferred_speed_mps = preferred_speed_mph * 0.44704;
+  constexpr double preferred_speed_mps = preferred_speed_mph * MPH_MPS;
   // constexpr double max_speed_mph = 50.0;
   constexpr double max_accel_mpss = 9.0;
   constexpr double preferred_accel_mpss = 5.0;

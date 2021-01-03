@@ -16,9 +16,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& /* out */ out_x_vals,
   vector <vector<double>> const & sensor_fusion,
   PreviousPath const & prev_path) {
 
-  if (CFG::verbose >= CFG::Verbose::All) {
-    //PrintStats(ego_loc, map);
-  }
+  PrintStats(ego_loc, map);
 
   double front_car_dist, front_car_speed;
   int lane = DToLane(ego_loc.d);
@@ -43,7 +41,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& /* out */ out_x_vals,
   }
 
   // TODO: tmp, remove
-  if (front_car_dist < 20.0 && front_car_speed < CFG::preferred_speed_mph) {
+  if (front_car_dist < 20.0 && front_car_speed < CFG::preferred_speed_mps) {
     if (lane > 0)
       lane = 0;
     else
@@ -67,8 +65,9 @@ void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,
     next_s_index %= s_size;
     std::cout << "map.s[" << (next_s_index - 1) % s_size
       << "] at " << map.waypoints_s[(next_s_index - 1) % s_size]
-      << " passed, s=" << s << ", d=" << ego_loc.d
-      << ", x=" << ego_loc.x << ", y=" << ego_loc.y
-      << ", yaw=" << ego_loc.yaw << std::endl;
+      << " passed, s=" << s << " d=" << ego_loc.d
+      << " x=" << ego_loc.x << " y=" << ego_loc.y
+      << " yaw=" << ego_loc.yaw 
+      << " speed=" << ego_loc.speed_mph << "mph" << std::endl;
   }
 }

@@ -30,6 +30,13 @@ SensorFusion::SensorFusion(vector<vector<double>> const & input, double lap_leng
   }
 }
 
+/*
+ * Distance calculation with edge cases due to circular map:
+ * a.) target car is in front of the ego car
+ * s=0       [es=100]        [ts=180]       s=max   --> dist = ts-es
+ * b.) target car is behind ego car:
+ * s=0       [ts=100]        [es=200]       s=max   --> dist = ts-es+max
+ */
 int SensorFusion::GetCarInFront(double const & ego_s, int lane) {
   double min_dist = CFG::infinite;
   int result = -1;
