@@ -9,8 +9,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "Eigen/Core"
-#include "Eigen/QR"
 #include "helpers.h"
 #include "json.hpp"
 
@@ -78,8 +76,7 @@ int main() {
             * TODO: define a path made up of (x,y) points that the car will visit
             *   sequentially every .02 seconds
             */
-          BehaviorPlanner planner;
-          planner.GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, prev_path);
+          BehaviorPlanner::GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, prev_path);
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
@@ -173,8 +170,7 @@ int main() {
             * TODO: define a path made up of (x,y) points that the car will visit
             *   sequentially every .02 seconds
             */
-          BehaviorPlanner planner;
-          planner.GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, prev_path);
+          BehaviorPlanner::GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, prev_path);
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;

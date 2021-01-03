@@ -1,9 +1,26 @@
 #include "helpers.h"
 #include "config.h"
 #include "map.h"
+#include <iostream>
 
 double LaneToD(int lane) {
   return CFG::half_lane_width + lane * CFG::lane_width;
+}
+
+int DToLane(double d) {
+  if (d < CFG::lane_width)
+    return 0;
+  else if (d > 2.0 * CFG::lane_width)
+    return 2;
+  else
+    return 1;
+
+  //for (int i = 0; i < CFG::lane_count; ++i)
+  //  if (abs(d - (CFG::half_lane_width + i * CFG::lane_width)) < CFG::half_lane_width)
+  //    return i;
+
+  //// std::cout << "WARGNING: no lane number found. Returning -1." << std::endl;
+  //return -1;
 }
 
 string hasData(string s) {
@@ -123,14 +140,23 @@ vector<double> getXY(double s, double d, const Map & map) {
   const vector<double>& maps_x = map.waypoints_x;
   const vector<double>& maps_y = map.waypoints_y;
   const vector<double>& maps_s = map.waypoints_s;
+  size_t s_size = maps_s.size();
  
-  long long prev_wp = -1;
+  bool log = false; // (CFG::verbose >= CFG::Verbose::All);
 
-  while (s > maps_s[prev_wp + 1] && (prev_wp < ((long long)maps_s.size() - 1))) {
+  long long prev_wp = -1;
+  s = fmod(s, map.max_s);
+  if (log)
+    std::cout << "getXY> s=" << s;
+
+  while (s > maps_s[(prev_wp+1) % s_size] && (prev_wp < ((long long)s_size - 1))) {
     ++prev_wp;
   }
+  prev_wp %= s_size;
 
-  long long wp2 = (prev_wp + 1) % maps_x.size();
+  long long wp2 = (prev_wp + 1) % s_size;
+  if (log)
+    std::cout << " prew_wp=" << prev_wp << " wp2=" << wp2;
 
   double heading = atan2((maps_y[wp2] - maps_y[prev_wp]),
     (maps_x[wp2] - maps_x[prev_wp]));
@@ -139,11 +165,15 @@ vector<double> getXY(double s, double d, const Map & map) {
 
   double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
   double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
+  if (log)
+    std::cout << " seg_s=" << seg_s << " seg_x=" << seg_x << " seg_y=" << seg_y;
 
   double perp_heading = heading - M_PI_2;
 
   double x = seg_x + d * cos(perp_heading);
   double y = seg_y + d * sin(perp_heading);
+  if (log)
+    std::cout << " x=" << x << " y=" << y << std::endl;
 
   return { x,y };
 }

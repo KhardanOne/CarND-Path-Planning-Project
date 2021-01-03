@@ -16,6 +16,9 @@ using std::vector;
 // calculates center d value from lane number
 double LaneToD(int lane);
 
+// calculates lane number from d
+int DToLane(double d);
+
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 //   else the empty string "" will be returned.

@@ -2,6 +2,8 @@
 #define CONFIG_H
 
 #include <vector>
+#include <limits>
+#include <float.h>
 using std::vector;
 
 namespace CFG {
@@ -19,6 +21,7 @@ namespace CFG {
   // constexpr double max_speed_mph = 50.0;
   constexpr double max_accel_mpss = 9.0;
   constexpr double preferred_accel_mpss = 5.0;
+  constexpr double preferred_deccel_mpss = 3.0;
   // constexpr double max_jerk_mpsss = 9.0;
 
   constexpr int    lane_count = 3;
@@ -32,9 +35,13 @@ namespace CFG {
   // constexpr double max_speed_mps = max_speed_mph * 0.44704;
   constexpr double preferred_dist_per_frame = preferred_speed_mps * sim_time_step_s;
   constexpr double preferred_dist_per_frame_increment = preferred_accel_mpss * sim_time_step_s * sim_time_step_s;
+  constexpr double preferred_dist_per_frame_decrement = preferred_deccel_mpss * sim_time_step_s * sim_time_step_s;
   constexpr int    trajectory_node_count = int(trajectory_length_s / sim_time_step_s);
   constexpr int    trajectory_min_node_count = int(trajectory_min_length_s / sim_time_step_s);
   constexpr double half_lane_width = lane_width / 2.0;
+
+  constexpr double lane_buffer = 14.0; //  distance to follow the forward car from, car center to car center
+  constexpr double infinite = DBL_MAX;
 };
 
 #endif //  CONFIG_H

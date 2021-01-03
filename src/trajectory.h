@@ -5,11 +5,7 @@
 #include "vehicle.h"
 #include "map.h"
 #include <vector>
-#include <Eigen/Dense>
 using std::vector;
-
-typedef Eigen::Vector3d Sigmas;
-typedef Eigen::Array<double,6,1> Coeffs;
 
 /*
  * Received from the simulator.
@@ -20,15 +16,6 @@ struct PreviousPath {
   double end_s;
   double end_d;
 };
-
-/*
- * Calculates Jerk Minimizing Trajectory. One dimension only.
- * @param start pos, speed, acceleration
- * @param end   pos, speed, acceleration
- * @param time  when shall be end point reached, in seconds
- * @output 6 coefficients for a quintic polynomial
- */
-// Coeffs JMT(Sigmas const & start, Sigmas const & end, double time);
 
 /* 
  * Creates trajectory in form of two vectors, one for x and one for y coords.
@@ -43,7 +30,8 @@ struct PreviousPath {
 void CreateTrajectory(vector<double> & /* out */ out_x_vals,
   vector<double> & /* out */ out_y_vals,
   int target_lane,
-  double target_delta_s,
+  double front_car_dist,
+  double front_car_speed,
   Map const & map,
   LocalizationData const & ego,
   PreviousPath const & prev_path);
