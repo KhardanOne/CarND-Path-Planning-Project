@@ -4,7 +4,9 @@
 #include "map.h"
 #include "config.h"
 #include <vector>
+#include <iomanip>
 #include <iostream>
+#include <stdio.h>
 
 using std::vector;
 using std::min;
@@ -112,12 +114,12 @@ int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
   int best = center;
   double max_free_dist = GetPredictedDistanceBeforeObstructed(center, ego, map);
   int current = DToLane(ego.d);  // the current lane is the fallback
-  std::cout << current << " free lane distances: center: " << max_free_dist;
+  //std::cout << current << " free lane distances: center: " << max_free_dist;
 
   // consider center lane first
   if (max_free_dist > CFG::kKeepLaneAboveFreeDist
       && (current == center || IsLaneOpen(center, ego, map))) {
-    std::cout << " it is enough, not considering others. Choise >>> " << center << std::endl;
+    //std::cout << " it is enough, not considering others. Choise >>> " << center << std::endl;
     return center;
   }
 
@@ -126,30 +128,34 @@ int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
   if (current != center) {
     double dist = GetPredictedDistanceBeforeObstructed(current, ego, map);
     if (dist > CFG::kKeepLaneAboveFreeDist) {
-      std::cout << ", current: " << dist << " is enough, not considering others. Choise >>> "
-        << current << std::endl;
+      //std::cout << ", current: " << dist << " is enough, not considering others. Choise >>> "
+      //  << current << std::endl;
       return current;
     } else if (dist > max_free_dist) {
-      std::cout << ", current: " << dist << " is better than center. Choise >>> "
-        << current << std::endl;
+      //std::cout << ", current: " << dist << " is better than center. Choise >>> "
+      //  << current << std::endl;
       return current;
     } else {
-      std::cout << ", current: " << dist << " is worse than center. Choise >>> "
-        << center << std::endl;
-      return center;
+      //std::cout << ", current: " << dist << " is worse than center. Choise >>> "
+      //  << center << std::endl;
+      if (IsLaneOpen(center, ego, map)) {
+        return center;
+      } else {
+        return current;
+      }
     }
   } else {  // current == center but not good enough, check side lanes
-    for (int lane = max(current - 1, 0); lane <= min(current + 1, CFG::kLaneCount - 1); ++lane) {
+    for (int lane = max(current - 1, 0); lane <= min(current + 1, CFG::kLaneCount - 1); lane += 2) {
       if (lane == current || lane == center)
         continue;
       double free_dist = GetPredictedDistanceBeforeObstructed(lane, ego, map);
-      std::cout << "   " << lane << ": " << int(free_dist);
+      //std::cout << "   " << lane << ": " << free_dist;
       if (free_dist > max_free_dist && IsLaneOpen(lane, ego, map)) {
         best = lane;
         max_free_dist = free_dist;
       }
     }
-    std::cout << " best dist: " << max_free_dist << " choice >>> " << best << std::endl;
+    //std::cout << " best dist: " << max_free_dist << " choice >>> " << best << std::endl;
     return best;
   }
 }
@@ -180,19 +186,49 @@ double SensorFusion::GetPredictedDistanceBeforeObstructed(
   return max_free_dist;
 }
 
+/*
+ * Prints lane info for debugging purposes
+ * Legend:
+ *    o   o - this lane would be selected by GetTargetLane()
+ *    >   < - current lane
+ *    !! !! - blocked lane
+ *    123.3 - free distance, considering speeds
+ * Examples:
+ *    [   324324.344   ]    [    234234234    ]     [   34324.3434234    ]
+ *    [!! 324324.344 !!]  o>[!!  234234234  !!]<o   [!! 34324.3434234  !!]
+ */
+void SensorFusion::PrintLaneChangeInfo(LocalizationData const& ego, Map const& map) {
+  vector<double> dists;
+  dists.push_back(GetPredictedDistanceBeforeObstructed(0, ego, map));
+  dists.push_back(GetPredictedDistanceBeforeObstructed(1, ego, map));
+  dists.push_back(GetPredictedDistanceBeforeObstructed(2, ego, map));
+  vector<bool> opens;
+  opens.push_back(IsLaneOpen(0, ego, map));
+  opens.push_back(IsLaneOpen(1, ego, map));
+  opens.push_back(IsLaneOpen(2, ego, map));
+  int lane = DToLane(ego.d);
+  int lane_choise = GetTargetLane(ego, map);
 
-//int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
-//  int current = DToLane(ego.d);  // the current lane is the fallback
-//  int best = current;
-//  double max_speed_mps = GetLaneSpeedMps(ego.s, current);
-//  for (int lane = max(current-1, 0); lane <= min(current+1, CFG::kLaneCount-1); ++lane) {
-//    if (lane == current)
-//      continue;
-//    double lane_speed = GetLaneSpeedMps(ego.s, lane);
-//    if (lane_speed > max_speed_mps && IsLaneOpen(lane, ego, map)) {
-//      best = lane;
-//      max_speed_mps = lane_speed;
-//    }
-//  }
-//  return best;
-//}
+  std::cout << std::setw(8) << int(ego.s);
+
+  for (int i = 0; i < 3; ++i) {
+    constexpr int kLength = 40;
+    char buffer[kLength];
+    char c  = (lane_choise == i) ? 'o' : ' ';
+    char ll = (lane == i)        ? '>' : ' ';
+    char lr = (lane == i)        ? '<' : ' ';
+    char b  = !opens[i]          ? '!' : ' ';
+
+    int r = snprintf(buffer, kLength,
+      "     %c%c[%c%c %10g %c%c]%c%c", c, ll, b, b, dists[i], b, b, lr, c);
+    if (r < 0 || r > kLength)
+      std::cout << "ERROR in PrintLaneChangeInfo()" << std::endl;
+
+    std::cout << buffer;
+  }
+  std::cout << std::endl;
+
+
+
+
+}

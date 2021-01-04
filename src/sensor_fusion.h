@@ -59,6 +59,8 @@ class SensorFusion {
       LocalizationData const& ego,
       Map const& map);
 
+  void PrintLaneChangeInfo(LocalizationData const& ego, Map const& map);
+
   vector<SFCar> cars_;
   vector<vector<int>> lanes_;  // car ids for each lane
   double max_s_;

@@ -46,19 +46,18 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     }
   }
 
-  // TODO: tmp, remove
-  //if (front_car_dist < 20.0 && front_car_speed < CFG::kPreferredSpeedMps) {
-  //  if (lane > 0) {
-  //    lane = 0;
-  //  } else {
-  //    lane = 1;
-  //  }
-  //  std::cout << "lane change to " << lane << std::endl;
-  //}
-  lane = sf.GetTargetLane(ego_loc, map);
-
-  CreateTrajectory(out_x_vals, out_y_vals, lane, front_car_dist, front_car_speed,
-                   map, ego_loc, prev_path);
+  static int frames_until_next_lane_select = 1;
+  static int target_lane = 1;
+  
+  --frames_until_next_lane_select;
+  if (frames_until_next_lane_select == 0) {
+    target_lane = sf.GetTargetLane(ego_loc, map);
+    frames_until_next_lane_select = 4;  // ---------------------- edit here to debug
+    sf.PrintLaneChangeInfo(ego_loc, map);
+  }
+  
+  CreateTrajectory(out_x_vals, out_y_vals, target_lane, front_car_dist,
+                   front_car_speed, map, ego_loc, prev_path);
 
 }
 
