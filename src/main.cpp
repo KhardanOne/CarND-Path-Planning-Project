@@ -5,19 +5,17 @@
   #include <uWS/uWS.h>
 #endif 
 
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
-#include "helpers.h"
-#include "json.hpp"
-
 #include "config.h"
 #include "map.h"
 #include "vehicle.h"
 #include "behavior_planner.h"
+#include "helpers.h"
+#include "json.hpp"
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
-// for convenience
 using nlohmann::json;
 using std::string;
 using std::vector;
@@ -27,7 +25,7 @@ int main() {
   uWS::Hub h;
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
-  Map map("../data/highway_map.csv", 6945.554);
+  Map map("../data/highway_map.csv", CFG::kLapLength);
 
   h.onMessage([&map]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -37,7 +35,7 @@ int main() {
     // The 2 signifies a websocket event
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
-      auto s = hasData(data);
+      auto s = HasData(data);
 
       if (s != "") {  
         auto j = json::parse(s);
@@ -119,7 +117,7 @@ int main() {
 int main() {
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
-  Map map("../data/highway_map.csv", 6945.554);
+  Map map("../data/highway_map.csv", CFG::kLapLength);
 	
   uWS::App::WebSocketBehavior b;
 
@@ -131,7 +129,7 @@ int main() {
     const char* data = message.data();
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
-      auto s = hasData(data);
+      auto s = HasData(data);
 
       if (s != "") {
         auto j = json::parse(s);
@@ -197,7 +195,7 @@ int main() {
     std::cout << "Disconnected" << std::endl;
   };
 
-  b.maxPayloadLength = 64 * 1024 * 1024;
+  b.maxPayloadLength = 64 * 1024 * 1024;  // experimental value found working well with VCPKG
 
   int port = 4567;
   struct PerSocketData {};

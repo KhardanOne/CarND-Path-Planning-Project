@@ -7,8 +7,7 @@
 #include <sstream>
 
 Map::Map(string const & file_fqn, double lap_length)
-: max_s(lap_length) {
-
+    : max_s_(lap_length) {
   std::ifstream in_map(file_fqn.c_str(), std::ifstream::in);
   string line;
   while (getline(in_map, line)) {
@@ -30,8 +29,9 @@ Map::Map(string const & file_fqn, double lap_length)
     waypoints_dy.push_back(d_y);
   }
 
-  if (waypoints_x.size() == 0)
+  if (waypoints_x.size() == 0) {
     std::cout << "ERROR: missing map data. Check your path." << std::endl;
-  else if (CFG::verbose >= CFG::Important)
+  } else if (CFG::kVerbose >= CFG::kImportant) {
     std::cout << "Map initialized with " << waypoints_x.size() << " elements." << std::endl;
+  }
 }
