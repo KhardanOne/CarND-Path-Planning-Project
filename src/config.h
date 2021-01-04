@@ -18,7 +18,7 @@ namespace CFG {
 
   constexpr double sim_time_step_s = 0.02;
 
-  constexpr double preferred_speed_mph = 49.0;
+  constexpr double preferred_speed_mph = 49.5;
   constexpr double preferred_speed_mps = preferred_speed_mph * MPH_MPS;
   // constexpr double max_speed_mph = 50.0;
   constexpr double max_accel_mpss = 9.0;

@@ -142,12 +142,12 @@ vector<double> getXY(double s, double d, const Map & map) {
   const vector<double>& maps_s = map.waypoints_s;
   size_t s_size = maps_s.size();
  
-  bool log = false; // (CFG::verbose >= CFG::Verbose::All);
+  bool log = false;
 
   long long prev_wp = -1;
   s = fmod(s, map.max_s);
   if (log)
-    std::cout << "getXY> s=" << s;
+    std::cout << "getXY: s=" << s;
 
   while (s > maps_s[(prev_wp+1) % s_size] && (prev_wp < ((long long)s_size - 1))) {
     ++prev_wp;

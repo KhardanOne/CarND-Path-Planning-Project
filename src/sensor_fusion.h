@@ -30,6 +30,15 @@ class SensorFusion {
    */
   int GetCarInFront(double const & ego_s, int lane);
 
+  /*
+   * Returns the x, y coordinates of a car.
+   * It predicts a linear trajectory.
+   * @param car_id which car to predict for
+   * @param time how much time in the future to look at (delta T) 
+   * @output vector<double> where [0] is x, [1] is y
+   */
+  vector<double> GetPredictedPos(int car_id, double time);
+
   vector<SFCar> cars;
   vector<vector<int>> lanes;  // car ids for each lane
   double max_s;
