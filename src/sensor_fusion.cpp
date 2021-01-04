@@ -48,12 +48,24 @@ int SensorFusion::GetCarInFront(double ego_s, int lane) {
   for (size_t i_in_lane = 0; i_in_lane < current_lane.size(); ++i_in_lane) {
     int target_idx = current_lane[i_in_lane];
     double target_s = cars_[target_idx].raw[SF::S];
-    target_s = (target_s < ego_s) ? target_s+max_s_ : target_s;  // handle lap restarts
+    target_s = (target_s < ego_s) ? target_s + max_s_ : target_s;  // handle lap restarts
     double dist = target_s - ego_s;
     if (dist < min_dist) {
       min_dist = dist;
       result = target_idx;
     }
   }
+  return result;
+}
+
+vector<double> SensorFusion::GetPredictedPos(int car_id, double time) {
+  vector<double> const& raw = cars_[car_id].raw;
+  double x = raw[SF::X];
+  double y = raw[SF::Y];
+  double vx = raw[SF::VX];
+  double vy = raw[SF::VY];
+  vector<double> result; 
+  result.push_back(x + time * vx);
+  result.push_back(y + time * vy);    
   return result;
 }
