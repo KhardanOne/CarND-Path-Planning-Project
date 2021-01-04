@@ -115,7 +115,8 @@ int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
   std::cout << current << " free lane distances: center: " << max_free_dist;
 
   // consider center lane first
-  if (max_free_dist > CFG::kKeepLaneAboveFreeDist) {
+  if (max_free_dist > CFG::kKeepLaneAboveFreeDist
+      && (current == center || IsLaneOpen(center, ego, map))) {
     std::cout << " it is enough, not considering others. Choise >>> " << center << std::endl;
     return center;
   }
