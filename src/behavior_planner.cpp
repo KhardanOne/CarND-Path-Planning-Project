@@ -19,9 +19,9 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   double front_car_dist, front_car_speed;
   int lane = DToLane(ego_loc.d);
 
-  bool log = true;
+  bool log = false;
   if (log) {
-    std::cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);
+    // std::cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);
     PrintStats(ego_loc, map);
     std::cout << "ego lane:" << lane << " s:" << ego_loc.s << " (" << ego_loc.x << "," 
       << ego_loc.y << "@" << ego_loc.yaw << ") speed:" << ego_loc.speed_mph << "mph";
@@ -47,14 +47,14 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   }
 
   // TODO: tmp, remove
-  if (front_car_dist < 20.0 && front_car_speed < CFG::kPreferredSpeedMps) {
-    if (lane > 0) {
-      lane = 0;
-    } else {
-      lane = 1;
-    }
-    std::cout << "lane change to " << lane << std::endl;
-  }
+  //if (front_car_dist < 20.0 && front_car_speed < CFG::kPreferredSpeedMps) {
+  //  if (lane > 0) {
+  //    lane = 0;
+  //  } else {
+  //    lane = 1;
+  //  }
+  //  std::cout << "lane change to " << lane << std::endl;
+  //}
 
   CreateTrajectory(out_x_vals, out_y_vals, lane, front_car_dist, front_car_speed,
                    map, ego_loc, prev_path);

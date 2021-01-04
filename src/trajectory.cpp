@@ -115,59 +115,64 @@ void CreateTrajectory(vector<double>& out_x_vals,
     target_car_dist = max(front_car_dist, CFG::kCarLength);
     target_car_speed_mps = front_car_speed_mps;
   }
+  target_car_dist -= (CFG::kCarLength + CFG::kBufferDist);
+  
+  // PID controller to smoothen follow distance
 
-  if (target_car_speed_mps >= ego.speed_mph * CFG::kMphToMps || target_car_dist > 30.0) { //  TODO: improve
-    // accelerate or keep speed
+  double delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;
+  // Distance from the target car where braking needs to be started
+  double dist_to_start_braking = (delta_speed_mps > 0.0) ?
+    0.0 : delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
+  // Distance from ego car where braking needs to be started
+  dist_to_start_braking = target_car_dist - dist_to_start_braking;
 
-    // preferred_delta_x *= target_car_speed_mps / CFG::kPreferredSpeedMph;
-    double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio;
+  constexpr double pid_kp = 0.1;
+  constexpr double pid_kd = 0.5;
+  static double pid_prev_p = 0.0;
+  double& pid_p = dist_to_start_braking;
+  double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p-pid_prev_p), 1.0), -1.0));
+  pid_prev_p = pid_p;
+  std::cout << "PID out:" << pid_out << " P:" << pid_p << " D:" << (pid_p - pid_prev_p)
+    << " dist to start braking: " << dist_to_start_braking << std::endl;
+  
+  // preferred_delta_x *= target_car_speed_mps / CFG::kPreferredSpeedMph;
+  double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
+  double x_disp_deccel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
 
-    for (size_t i = out_x_vals.size(); i < CFG::kTrajectoryNodeCount; ++i) {
-      double x_displacement = min(last_x_displacement + x_disp_accel, preferred_delta_x);
-      last_x_displacement = x_displacement;
-      double x = x_progress + x_displacement;
-      double y = spl(x);
-      x_progress = x;
-
-      // transform coordinates back
-      double delta_x = x;
-      double delta_y = y;
-      x = delta_x * cos(ref_yaw) - delta_y * sin(ref_yaw);
-      y = delta_x * sin(ref_yaw) + delta_y * cos(ref_yaw);
-      x += ref_x;
-      y += ref_y;
-
-      out_x_vals.push_back(x);
-      out_y_vals.push_back(y);
-    }
-  } else {
-    // deccelerate
-
-    double delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;
-    // Distance from target car where braking needs to be started
-    double dist_to_start_braking = delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
+  // create trajectory nodes
+  for (size_t i = out_x_vals.size(); i < CFG::kTrajectoryNodeCount; ++i) {
+    delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;
+    // Distance from the target car where braking needs to be started
+    dist_to_start_braking = (delta_speed_mps > 0.0) ?
+      0.0 : delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
     // Distance from ego car where braking needs to be started
     dist_to_start_braking = target_car_dist - dist_to_start_braking;
-    double x_disp_deccel = CFG::kPreferredDistPerFrameDecrement * x_ratio;
+    double x_displacement;
 
-    for (size_t i = out_x_vals.size(); i < CFG::kTrajectoryNodeCount; ++i) {
-      double x_displacement = (x_progress > dist_to_start_braking) ?
-        x_displacement = last_x_displacement - x_disp_deccel : last_x_displacement;
-      last_x_displacement = x_displacement;
-      double x = x_progress + x_displacement;
-      double y = spl(x);
-      x_progress = x;
+    //std::cout << i << " target speed:" << target_car_speed_mps << " ego speed:" << ego.speed_mph
+    //  << " delta:" << delta_speed_mps << " start braking in " << dist_to_start_braking << " meters" << std::endl;
 
-      // transform coordinates back
-      double delta_x = x;
-      double delta_y = y;
-      x = delta_x * cos(ref_yaw) - delta_y * sin(ref_yaw);
-      y = delta_x * sin(ref_yaw) + delta_y * cos(ref_yaw);
-      x += ref_x;
-      y += ref_y;
-
-      out_x_vals.push_back(x);
-      out_y_vals.push_back(y);
+    if (dist_to_start_braking < 0.0) { //  TODO: improve
+      // deccelerate
+      x_displacement = last_x_displacement - x_disp_deccel;
+    } else {
+      // accelerate or keep speed
+      x_displacement = min(last_x_displacement + x_disp_accel, preferred_delta_x);
     }
+    last_x_displacement = x_displacement;
+    double x = x_progress + x_displacement;
+    double y = spl(x);
+    x_progress = x;
+
+    // transform coordinates back
+    double delta_x = x;
+    double delta_y = y;
+    x = delta_x * cos(ref_yaw) - delta_y * sin(ref_yaw);
+    y = delta_x * sin(ref_yaw) + delta_y * cos(ref_yaw);
+    x += ref_x;
+    y += ref_y;
+
+    out_x_vals.push_back(x);
+    out_y_vals.push_back(y);
   }
 }
