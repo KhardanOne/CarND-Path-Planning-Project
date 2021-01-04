@@ -108,24 +108,49 @@ bool SensorFusion::IsLaneOpen(int lane, LocalizationData const& ego, Map const& 
 }
 
 int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
+  int center = 1;
+  int best = center;
+  double max_free_dist = GetPredictedDistanceBeforeObstructed(center, ego, map);
   int current = DToLane(ego.d);  // the current lane is the fallback
-  int best = current;
-  double max_free_dist = GetPredictedDistanceBeforeObstructed(current, ego, map);
-  std::cout << "free dists   " << current << ": " << int(max_free_dist);
+  std::cout << current << " free lane distances: center: " << max_free_dist;
 
-  // do the same for neighboring lanes
-  for (int lane = max(current - 1, 0); lane <= min(current + 1, CFG::kLaneCount - 1); ++lane) {
-    if (lane == current)
-      continue;
-    double free_dist = GetPredictedDistanceBeforeObstructed(lane, ego, map);
-    std::cout << "   " << lane << ": " << int(free_dist);
-    if (free_dist > max_free_dist && IsLaneOpen(lane, ego, map)) {
-      best = lane;
-      max_free_dist = free_dist;
-    }
+  // consider center lane first
+  if (max_free_dist > CFG::kKeepLaneAboveFreeDist) {
+    std::cout << " it is enough, not considering others. Choise >>> " << center << std::endl;
+    return center;
   }
-  std::cout << std::endl;
-  return best;
+
+  // consider current lane next if it is not the center
+  // only these two lanes are valid choices so far  // TODO: add some path finding
+  if (current != center) {
+    double dist = GetPredictedDistanceBeforeObstructed(current, ego, map);
+    if (dist > CFG::kKeepLaneAboveFreeDist) {
+      std::cout << ", current: " << dist << " is enough, not considering others. Choise >>> "
+        << current << std::endl;
+      return current;
+    } else if (dist > max_free_dist) {
+      std::cout << ", current: " << dist << " is better than center. Choise >>> "
+        << current << std::endl;
+      return current;
+    } else {
+      std::cout << ", current: " << dist << " is worse than center. Choise >>> "
+        << center << std::endl;
+      return center;
+    }
+  } else {  // current == center but not good enough, check side lanes
+    for (int lane = max(current - 1, 0); lane <= min(current + 1, CFG::kLaneCount - 1); ++lane) {
+      if (lane == current || lane == center)
+        continue;
+      double free_dist = GetPredictedDistanceBeforeObstructed(lane, ego, map);
+      std::cout << "   " << lane << ": " << int(free_dist);
+      if (free_dist > max_free_dist && IsLaneOpen(lane, ego, map)) {
+        best = lane;
+        max_free_dist = free_dist;
+      }
+    }
+    std::cout << " best dist: " << max_free_dist << " choice >>> " << best << std::endl;
+    return best;
+  }
 }
 
 double SensorFusion::GetPredictedDistanceBeforeObstructed(
