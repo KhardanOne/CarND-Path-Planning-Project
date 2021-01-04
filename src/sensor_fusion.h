@@ -2,6 +2,7 @@
 #define SENSOR_FUSION_H
 
 #include "map.h"
+#include "vehicle.h"
 #include <vector>
 
 using std::vector;
@@ -41,6 +42,22 @@ class SensorFusion {
    * @output vector<double> where [0] is x, [1] is y
    */
   vector<double> GetPredictedPos(int car_id, double time);
+
+  double GetPredictedS(LocalizationData const& ego, double time);
+
+  double GetLaneSpeedMps(double from_s, int lane);
+  bool IsLaneOpen(int lane, LocalizationData const& ego, Map const& map);
+  int GetTargetLane(LocalizationData const& ego, Map const& map);
+
+  /*
+   * Calculates the distance that can be driven before the ego car 
+   * would catch up the car in front with the given speed of the target car.
+   * The ego car speed is calculated with the preferred speed.
+   */
+  double GetPredictedDistanceBeforeObstructed(
+      int lane,
+      LocalizationData const& ego,
+      Map const& map);
 
   vector<SFCar> cars_;
   vector<vector<int>> lanes_;  // car ids for each lane

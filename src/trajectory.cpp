@@ -132,8 +132,8 @@ void CreateTrajectory(vector<double>& out_x_vals,
   double& pid_p = dist_to_start_braking;
   double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p-pid_prev_p), 1.0), -1.0));
   pid_prev_p = pid_p;
-  std::cout << "PID out:" << pid_out << " P:" << pid_p << " D:" << (pid_p - pid_prev_p)
-    << " dist to start braking: " << dist_to_start_braking << std::endl;
+  //std::cout << "PID out:" << pid_out << " P:" << pid_p << " D:" << (pid_p - pid_prev_p)
+  //  << " dist to start braking: " << dist_to_start_braking << std::endl;
   
   // preferred_delta_x *= target_car_speed_mps / CFG::kPreferredSpeedMph;
   double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
@@ -154,7 +154,7 @@ void CreateTrajectory(vector<double>& out_x_vals,
 
     if (dist_to_start_braking < 0.0) { //  TODO: improve
       // deccelerate
-      x_displacement = last_x_displacement - x_disp_deccel;
+      x_displacement = max(last_x_displacement - x_disp_deccel, 0.0);
     } else {
       // accelerate or keep speed
       x_displacement = min(last_x_displacement + x_disp_accel, preferred_delta_x);

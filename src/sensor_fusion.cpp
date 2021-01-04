@@ -1,5 +1,6 @@
 #include "sensor_fusion.h"
 #include "helpers.h"
+#include "vehicle.h"
 #include "map.h"
 #include "config.h"
 #include <vector>
@@ -7,6 +8,7 @@
 
 using std::vector;
 using std::min;
+using std::max;
 
 SFCar::SFCar(vector<double> const& raw_values, int lane_num)
   : raw(raw_values),
@@ -64,8 +66,107 @@ vector<double> SensorFusion::GetPredictedPos(int car_id, double time) {
   double y = raw[SF::Y];
   double vx = raw[SF::VX];
   double vy = raw[SF::VY];
-  vector<double> result; 
+  vector<double> result;
   result.push_back(x + time * vx);
-  result.push_back(y + time * vy);    
+  result.push_back(y + time * vy);
   return result;
 }
+
+double SensorFusion::GetLaneSpeedMps(double from_s, int lane) {
+  int car_idx = GetCarInFront(from_s, lane);
+  if (car_idx == -1) {
+    return CFG::kPreferredSpeedMps;
+  } else {
+    vector<double> const& raw = cars_[car_idx].raw;
+    return sqrt(raw[SF::VX] * raw[SF::VX] + raw[SF::VY] * raw[SF::VY]);
+  }
+}
+
+double SensorFusion::GetPredictedS(LocalizationData const& ego, double time) {
+  double speed_mps = ego.speed_mph * CFG::kMphToMps;
+  return ego.s + time * speed_mps;
+}
+
+bool SensorFusion::IsLaneOpen(int lane, LocalizationData const& ego, Map const& map) {
+  vector<int> const& lane_vect = lanes_[lane];
+  size_t lane_size = lane_vect.size();
+  double dist_limit_pow2 = CFG::kLaneWindowHalfLength * CFG::kLaneWindowHalfLength;
+  for (double time = 0.0; time <= CFG::kLaneChangeDuration; time += 1.0) {
+    double predicted_s = GetPredictedS(ego, time);
+    vector<double> target_pos = GetXY(predicted_s, LaneToD(lane), map);
+    for (int i_in_lane = 0; i_in_lane < lane_size; ++i_in_lane) {
+      int car_idx = lane_vect[i_in_lane];
+      vector<double> const& raw = cars_[car_idx].raw;
+      vector<double> predicted_pos = GetPredictedPos(car_idx, time);
+      double dist_pow2 = DistancePow2(target_pos[0], target_pos[1],
+        predicted_pos[0], predicted_pos[1]);
+      if (dist_pow2 < dist_limit_pow2)
+        return false;
+    }
+  }
+  return true;
+}
+
+int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
+  int current = DToLane(ego.d);  // the current lane is the fallback
+  int best = current;
+  double max_free_dist = GetPredictedDistanceBeforeObstructed(current, ego, map);
+  std::cout << "free dists   " << current << ": " << int(max_free_dist);
+
+  // do the same for neighboring lanes
+  for (int lane = max(current - 1, 0); lane <= min(current + 1, CFG::kLaneCount - 1); ++lane) {
+    if (lane == current)
+      continue;
+    double free_dist = GetPredictedDistanceBeforeObstructed(lane, ego, map);
+    std::cout << "   " << lane << ": " << int(free_dist);
+    if (free_dist > max_free_dist && IsLaneOpen(lane, ego, map)) {
+      best = lane;
+      max_free_dist = free_dist;
+    }
+  }
+  std::cout << std::endl;
+  return best;
+}
+
+double SensorFusion::GetPredictedDistanceBeforeObstructed(
+    int lane,
+    LocalizationData const& ego,
+    Map const& map) {
+  int front_id = GetCarInFront(ego.s, lane);
+  double max_free_dist;
+  if (front_id == -1) {
+    max_free_dist = CFG::kInfinite;
+  }
+  else {
+    double front_speed_mps = GetLaneSpeedMps(ego.s, lane);
+    double delta_speed_mps = CFG::kPreferredSpeedMps - front_speed_mps;
+    double time_to_catch;
+    if (delta_speed_mps > 0.01) {
+      double front_s = cars_[front_id].raw[SF::S];
+      double distance = front_s - ego.s;
+      distance = (distance >= 0.0) ? distance : distance + CFG::kLapLength;  // handle lap restarts
+      time_to_catch = distance / delta_speed_mps;
+    } else {
+      time_to_catch = CFG::kInfinite;
+    }
+    max_free_dist = CFG::kPreferredSpeedMps * time_to_catch;
+  }
+  return max_free_dist;
+}
+
+
+//int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
+//  int current = DToLane(ego.d);  // the current lane is the fallback
+//  int best = current;
+//  double max_speed_mps = GetLaneSpeedMps(ego.s, current);
+//  for (int lane = max(current-1, 0); lane <= min(current+1, CFG::kLaneCount-1); ++lane) {
+//    if (lane == current)
+//      continue;
+//    double lane_speed = GetLaneSpeedMps(ego.s, lane);
+//    if (lane_speed > max_speed_mps && IsLaneOpen(lane, ego, map)) {
+//      best = lane;
+//      max_speed_mps = lane_speed;
+//    }
+//  }
+//  return best;
+//}

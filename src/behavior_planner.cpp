@@ -55,6 +55,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   //  }
   //  std::cout << "lane change to " << lane << std::endl;
   //}
+  lane = sf.GetTargetLane(ego_loc, map);
 
   CreateTrajectory(out_x_vals, out_y_vals, lane, front_car_dist, front_car_speed,
                    map, ego_loc, prev_path);

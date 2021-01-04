@@ -27,6 +27,10 @@ namespace CFG {
   // tuning parameters
   constexpr double kBufferDist = 10.0; //  Distance to follow the forward car from, car center to car center
   constexpr double kCarLength = 5.0;
+  constexpr double kLaneWindowHalfLength = 10.0;  // space required for lane change
+  
+  // the window must be open for this long, will be sampled every second
+  constexpr double kLaneChangeDuration = 2.0;
   constexpr double kTrajectoryLengthS = 2.0;
   constexpr double kTrajectoryMinLengthS = 0.2;
   constexpr double kPreferredSpeedMph = 49.5;
@@ -35,7 +39,7 @@ namespace CFG {
   constexpr double kMaxAccelMpss = 9.0;
   constexpr double kPreferredAccelMpss = 5.0;
   constexpr double kPreferredDeccelMpss = 3.0;
-  constexpr double kMaxDeccelMpss = 9.0;
+  constexpr double kMaxDeccelMpss = 7.0;
   // constexpr double kMaxJerkMpsss = 9.0;
 
   constexpr int    kLaneCount = 3;

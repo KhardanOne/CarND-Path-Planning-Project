@@ -87,7 +87,7 @@ int NextWaypoint(double x, double y, double theta, const Map& map) {
   return closestWaypoint;
 }
 
-vector<double> GetFrenet(double x, double y, double theta, const Map & map) {
+vector<double> GetFrenet(double x, double y, double theta, Map const& map) {
   int next_wp = NextWaypoint(x, y, theta, map);
 
   const vector<double>& maps_x = map.waypoints_x;
@@ -130,7 +130,7 @@ vector<double> GetFrenet(double x, double y, double theta, const Map & map) {
   return { frenet_s,frenet_d };
 }
 
-vector<double> GetXY(double s, double d, const Map & map) {
+vector<double> GetXY(double s, double d, Map const& map) {
   const vector<double>& maps_x = map.waypoints_x;
   const vector<double>& maps_y = map.waypoints_y;
   const vector<double>& maps_s = map.waypoints_s;
