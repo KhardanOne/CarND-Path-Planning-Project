@@ -26,7 +26,7 @@ void CreateTrajectory(vector<double>& out_x_vals,
   vector<double> spline_def_y;
   if (nodes_to_keep >= 3
       && Distance(prev_path.x_vals[nodes_to_keep-3], prev_path.y_vals[nodes_to_keep-3],
-                  prev_path.x_vals[nodes_to_keep-1], prev_path.y_vals[nodes_to_keep-1]) > 0.0001) {
+                  prev_path.x_vals[nodes_to_keep-2], prev_path.y_vals[nodes_to_keep-2]) > 0.0001) {
     // use the penultimate point as a reference
     spline_def_x.push_back(prev_path.x_vals[nodes_to_keep-3]);
     spline_def_x.push_back(prev_path.x_vals[nodes_to_keep-2]);
