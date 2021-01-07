@@ -9,56 +9,79 @@
 
 using std::min;
 using std::max;
+using std::cout;
+using std::endl;
+
+BehaviorPlanner::BehaviorPlanner()
+    : state_names_({"INVALID", "STARTING", "KEEP_LANE", "GO_LEFT", "GO_RIGHT"}),
+      state_(kKeepLane) {}
 
 void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
                                     vector<double>& out_y_vals,
                                     Map const& map,
-                                    LocalizationData const& ego_loc,
+                                    LocalizationData const& ego,
                                     vector<vector<double>> const& sensor_fusion,
                                     PreviousPath const& prev_path) {
-  double front_car_dist, front_car_speed;
-  int lane = DToLane(ego_loc.d);
+  SensorFusion sf(sensor_fusion, map.max_s_);
+  int lane = ego.GetLane();
 
+  switch (state_) {
+
+    case kKeepLane: {
+      cout << "KEEP_LANE   ";
+      target_lane_ = sf.GetTargetLane(ego, map);
+      if (target_lane_ > lane) {
+        state_ = kGoRight;
+      } else if (target_lane_ < lane) {
+        state_ = kGoLeft;
+      }
+      break;
+    }
+
+    case kGoLeft: {
+      cout << "GO_LEFT     ";
+      if (IsInLaneCenter(ego.d, target_lane_)) {
+        state_ = kKeepLane;
+      }
+      break;
+    }
+
+    case kGoRight: {
+      cout << "GO_RIGHT    ";
+      if (IsInLaneCenter(ego.d, target_lane_)) {
+        state_ = kKeepLane;
+      }
+      break;
+    }
+
+    default: {
+      cout << "INVALID     ";
+    }
+  }
+
+  // print debug info
   bool log = false;
   if (log) {
-    // std::cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);
-    PrintStats(ego_loc, map);
-    std::cout << "ego lane:" << lane << " s:" << ego_loc.s << " (" << ego_loc.x << "," 
-      << ego_loc.y << "@" << ego_loc.yaw << ") speed:" << ego_loc.speed_mph << "mph";
+    // cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);
+    PrintStats(ego, map);
+    cout << "ego lane:" << lane << " s:" << ego.s << " (" << ego.x << ","
+      << ego.y << "@" << ego.yaw << ") speed:" << ego.speed_mph << "mph";
   }
+  sf.PrintLaneChangeInfo(ego, map);
 
-  SensorFusion sf(sensor_fusion, map.max_s_);
-  int front_car_id = sf.GetCarInFront(ego_loc.s, lane);
-  if (front_car_id == -1) {
-    front_car_dist = CFG::kInfinite;
-    front_car_speed = CFG::kInfinite;
-    if (log) {
-      std::cout << " lane is empty all around:" << lane << std::endl;
-    }
+  // prepare inf for CreateTrajectory
+  double target_dist, target_speed;
+  int front_car = sf.GetCarInFront(ego.s, target_lane_);
+  if (front_car == -1) {
+    target_dist = CFG::kInfinite;
+    target_speed = CFG::kInfinite;
   } else {
-    vector<double> const& raw = sf.cars_[front_car_id].raw;
-    front_car_dist = Distance(ego_loc.x, ego_loc.y, raw[SF::X], raw[SF::Y]);
-    front_car_speed = sqrt(raw[SF::VX] * raw[SF::VX] + raw[SF::VY] * raw[SF::VY]);
-    if (log) {
-      std::cout << " front car:" << front_car_id << " dist:" << front_car_dist
-        << " speed:" << front_car_speed / CFG::kMphToMps << "mph, lane:" << DToLane(sf.cars_[front_car_id].raw[SF::D])
-        << " s:" << sf.cars_[front_car_id].raw[SF::S] << std::endl;
-    }
+    vector<double> const& raw = sf.cars_[front_car].raw;
+    target_dist = GetDistanceForward(ego.s, raw[SF::S]);
+    target_speed = Speed(raw[SF::VX], raw[SF::VY]);
   }
-
-  static int frames_until_next_lane_select = 1;
-  static int target_lane = 1;
-  
-  --frames_until_next_lane_select;
-  if (frames_until_next_lane_select == 0) {
-    target_lane = sf.GetTargetLane(ego_loc, map);
-    frames_until_next_lane_select = 4;  // ---------------------- edit here to debug
-    sf.PrintLaneChangeInfo(ego_loc, map);
-  }
-  
-  CreateTrajectory(out_x_vals, out_y_vals, target_lane, front_car_dist,
-                   front_car_speed, map, ego_loc, prev_path);
-
+  CreateTrajectory(out_x_vals, out_y_vals, target_lane_,
+                   target_dist, target_speed, map, ego, prev_path);
 }
 
 void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,
@@ -71,11 +94,11 @@ void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,
       ++next_s_index;
     }
     next_s_index %= s_size;
-    std::cout << "\nmap.s[" << (next_s_index - 1) % s_size
+    cout << "\nmap.s[" << (next_s_index - 1) % s_size
       << "] at " << map.waypoints_s[(next_s_index - 1) % s_size]
       << " passed, s=" << s << " d=" << ego_loc.d
       << " x=" << ego_loc.x << " y=" << ego_loc.y
       << " yaw=" << ego_loc.yaw 
-      << " speed=" << ego_loc.speed_mph << "mph" << std::endl;
+      << " speed=" << ego_loc.speed_mph << "mph" << endl;
   }
 }

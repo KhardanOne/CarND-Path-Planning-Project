@@ -3,6 +3,9 @@
 #include "map.h"
 #include <iostream>
 
+using std::cout;
+using std::endl;
+
 double LaneToD(int lane) {
   return CFG::kHalfLaneWidth + lane * CFG::kLaneWidth;
 }
@@ -15,13 +18,16 @@ int DToLane(double d) {
   } else {
     return 1;
   }
+}
 
-  //for (int i = 0; i < CFG::kLaneCount; ++i)
-  //  if (abs(d - (CFG::kHalfLaneWidth + i * CFG::kLaneWidth)) < CFG::kHalfLaneWidth)
-  //    return i;
+bool IsInLaneCenter(double d) {
+  double offset = fmod(d - CFG::kHalfLaneWidth, CFG::kLaneWidth);
+  return offset <= CFG::kLaneCenterOffsetLimit;
+}
 
-  //// std::cout << "WARGNING: no lane number found. Returning -1." << std::endl;
-  //return -1;
+bool IsInLaneCenter(double d, int lane) {
+  double center = LaneToD(lane);
+  return abs(center - d) < CFG::kLaneCenterOffsetLimit;
 }
 
 string HasData(string s) {
@@ -39,8 +45,18 @@ string HasData(string s) {
 double DegToRad(double x) { return x * M_PI / 180; }
 double RadToDeg(double x) { return x * 180 / M_PI; }
 
+double GetDistanceForward(double from_s, double to_s) {
+  double distance = to_s - from_s;
+  distance = (distance >= 0.0) ? distance : distance + CFG::kLapLength;  // handle lap restarts
+  return distance;
+}
+
 double Distance(double x1, double y1, double x2, double y2) {
   return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
+
+double Speed(double vx, double vy) {
+  return sqrt(vx*vx + vy*vy);
 }
 
 double DistancePow2(double x1, double y1, double x2, double y2) {
@@ -136,37 +152,44 @@ vector<double> GetXY(double s, double d, Map const& map) {
   const vector<double>& maps_s = map.waypoints_s;
   size_t s_size = maps_s.size();
  
-  bool log = false;
+  bool log = true;
 
   long long prev_wp = -1;
   s = fmod(s, map.max_s_);
-  if (log)
-    std::cout << "GetXY: s=" << s;
+  //if (log)
+  //  cout << "GetXY: s=" << s;
 
-  while (s > maps_s[(prev_wp+1) % s_size] && (prev_wp < ((long long)s_size - 1))) {
+  while (s >= maps_s[(prev_wp+1) % s_size] && (prev_wp < ((long long)s_size - 1))) {
     ++prev_wp;
   }
   prev_wp %= s_size;
 
   long long wp2 = (prev_wp + 1) % s_size;
-  if (log)
-    std::cout << " prew_wp=" << prev_wp << " wp2=" << wp2;
+  if (log && (wp2 < 2 || prev_wp >= 179))
+    cout << " prew_wp=" << prev_wp << " wp2=" << wp2;
 
   double heading = atan2((maps_y[wp2] - maps_y[prev_wp]),
     (maps_x[wp2] - maps_x[prev_wp]));
   // the x,y,s along the segment
   double seg_s = (s - maps_s[prev_wp]);
+  if (seg_s < 0.0) {
+    if (log && (wp2 < 2 || prev_wp >= 179)) {
+      cout << "info: GetXY() seg_s is negative, incrementing from " << seg_s
+        << " to " << seg_s + map.max_s_ << endl;
+    }
+    seg_s += map.max_s_;
+  }
 
   double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
   double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
-  if (log)
-    std::cout << " seg_s=" << seg_s << " seg_x=" << seg_x << " seg_y=" << seg_y;
+  if (log && (wp2 < 2 || prev_wp >= 179))
+    cout << " seg_s=" << seg_s << " seg_x=" << seg_x << " seg_y=" << seg_y << " heading: " << heading;
 
   double perp_heading = heading - M_PI_2;
   double x = seg_x + d * cos(perp_heading);
   double y = seg_y + d * sin(perp_heading);
-  if (log)
-    std::cout << " x=" << x << " y=" << y << std::endl;
+  if (log && (wp2 < 2 || prev_wp >= 179))
+    cout << " x=" << x << " y=" << y << endl;
 
   return { x,y };
 }

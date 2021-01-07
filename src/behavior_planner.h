@@ -4,22 +4,29 @@
 #include "trajectory.h"
 #include "vehicle.h"
 #include "map.h"
+#include "sensor_fusion.h"
+#include <string>
 
 class BehaviorPlanner {
  public:
-  BehaviorPlanner() = default;
+  enum State {kInvalid, kStarting, kKeepLane, kGoLeft, kGoRight};
+
+  BehaviorPlanner();
   virtual ~BehaviorPlanner() = default;
 
-  static void GetTrajectory(vector<double>& /* out */ out_x_vals,
-                            vector<double>& /* out */ out_y_vals,
-                            Map const& map,
-                            LocalizationData const& ego_loc,
-                            vector<vector<double>> const& sensor_fusion,
-                            PreviousPath const& prev_path);
-
+  void GetTrajectory(vector<double>& out_x_vals,
+                     vector<double>& out_y_vals,
+                     Map const& map,
+                     LocalizationData const& ego_loc,
+                     vector<vector<double>> const& sensor_fusion,
+                     PreviousPath const& prev_path);
 
  private:
   static void PrintStats(LocalizationData const& ego_loc, Map const& map);
+
+  vector<string> state_names_;
+  int state_;
+  int target_lane_ = 1;
 };
 
 #endif  // BEHAVIOR_PLANNER_H

@@ -42,6 +42,7 @@ class SensorFusion {
    * @output vector<double> where [0] is x, [1] is y
    */
   vector<double> GetPredictedPos(int car_id, double time);
+  vector<double> GetPredictedPos(LocalizationData const& ego, double time);
 
   double GetPredictedS(LocalizationData const& ego, double time);
 
@@ -66,4 +67,4 @@ class SensorFusion {
   double max_s_;
 };
 
-#endif //  SENSOR_FUSION_H
+#endif  // SENSOR_FUSION_H
