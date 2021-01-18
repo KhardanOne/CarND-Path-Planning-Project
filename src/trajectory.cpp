@@ -16,9 +16,10 @@ void CreateTrajectory(vector<double>& out_x_vals,
                       Map const& map,
                       LocalizationData const& ego,
                       PreviousPath const& prev_path) {
+  double ref_yaw = 0.0;
+
   int prev_node_count = (int)prev_path.x_vals.size();
   long long nodes_to_keep = min(prev_node_count, CFG::kTrajectoryMinNodeCount);
-  double ref_yaw = 0.0;
   double prev_displacement = 0.0;  // Distance between last and penultimate positions
 
   // define the spline
@@ -26,7 +27,9 @@ void CreateTrajectory(vector<double>& out_x_vals,
   vector<double> spline_def_y;
   if (nodes_to_keep >= 3
       && Distance(prev_path.x_vals[nodes_to_keep-3], prev_path.y_vals[nodes_to_keep-3],
-                  prev_path.x_vals[nodes_to_keep-2], prev_path.y_vals[nodes_to_keep-2]) > 0.0001) {
+                  prev_path.x_vals[nodes_to_keep-2], prev_path.y_vals[nodes_to_keep-2]) > 0.0001
+      && Distance(prev_path.x_vals[nodes_to_keep-2], prev_path.y_vals[nodes_to_keep-2],
+                  prev_path.x_vals[nodes_to_keep-1], prev_path.y_vals[nodes_to_keep-1]) > 0.0001) {
     // use the penultimate point as a reference
     spline_def_x.push_back(prev_path.x_vals[nodes_to_keep-3]);
     spline_def_x.push_back(prev_path.x_vals[nodes_to_keep-2]);
@@ -54,6 +57,7 @@ void CreateTrajectory(vector<double>& out_x_vals,
     spline_def_y.push_back(car_y_present - delta_y);
     spline_def_y.push_back(car_y_present);
     spline_def_y.push_back(car_y_present + delta_y);
+
     // the car was standing still
     prev_displacement = 0.0;
   }
@@ -121,7 +125,7 @@ void CreateTrajectory(vector<double>& out_x_vals,
   }
   target_car_dist -= (CFG::kCarLength + CFG::kBufferDist + output_wip_size * CFG::kPreferredDistPerFrame);
   
-  double delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;
+  double delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;  // TODO: FIXIT: the trajectory end position and speed should be used
   // Distance from the target car where braking needs to be started
   double dist_to_start_braking = (delta_speed_mps > 0.0) ?
     0.0 : delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
@@ -135,14 +139,14 @@ void CreateTrajectory(vector<double>& out_x_vals,
   double& pid_p = dist_to_start_braking;
   double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p-pid_prev_p), 1.0), -1.0));
   pid_prev_p = pid_p;
-  //std::cout << "PID out:" << pid_out << " P:" << pid_p << " D:" << (pid_p - pid_prev_p)
-  //  << " dist to start braking: " << dist_to_start_braking << std::endl;
+  //cout << "PID out:" << pid_out << " P:" << pid_p << " D:" << (pid_p - pid_prev_p)
+  //  << " dist to start braking: " << dist_to_start_braking << endl;
   double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
   double x_disp_deccel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
 
   // create trajectory nodes
   for (size_t i = output_wip_size; i < CFG::kTrajectoryNodeCount; ++i) {
-    delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;
+    delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;  // TODO: FIXIT: the trajectory end position and speed should be used
     // Distance from the target car where braking needs to be started
     dist_to_start_braking = (delta_speed_mps > 0.0) ?
       0.0 : delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
@@ -150,8 +154,8 @@ void CreateTrajectory(vector<double>& out_x_vals,
     dist_to_start_braking = target_car_dist - dist_to_start_braking;
     double x_displacement;
 
-    //std::cout << i << " target speed:" << target_car_speed_mps << " ego speed:" << ego.speed_mph
-    //  << " delta:" << delta_speed_mps << " start braking in " << dist_to_start_braking << " meters" << std::endl;
+    //cout << i << " target speed:" << target_car_speed_mps << " ego speed:" << ego.speed_mph
+    //  << " delta:" << delta_speed_mps << " start braking in " << dist_to_start_braking << " meters" << endl;
 
     if (dist_to_start_braking < 0.0) { //  TODO: improve
       // deccelerate

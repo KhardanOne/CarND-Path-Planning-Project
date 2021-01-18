@@ -21,7 +21,6 @@ SFCar::SFCar(vector<double> const& raw_values, int lane_num)
 SensorFusion::SensorFusion(vector<vector<double>> const& input, double lap_length)
     : lanes_(3, vector<int>()), max_s_(lap_length) {
   int debug_wrong_input = 0;
-
   for (size_t c = 0; c < input.size(); ++c) {
     vector<double> const& raw = input[c];
     int lane = DToLane(raw[SF::D]);
@@ -33,7 +32,6 @@ SensorFusion::SensorFusion(vector<vector<double>> const& input, double lap_lengt
       ++debug_wrong_input;
     }
   }
-
   if (debug_wrong_input > 0) {
     cout << "WARNING: " << debug_wrong_input << " cars have wrong d value" << endl;
   }
@@ -49,9 +47,9 @@ SensorFusion::SensorFusion(vector<vector<double>> const& input, double lap_lengt
 int SensorFusion::GetCarInFront(double ego_s, int lane) {
   double min_dist = CFG::kInfinite;
   int result = -1;
-  vector<int>& current_lane = lanes_[lane];
-  for (size_t i_in_lane = 0; i_in_lane < current_lane.size(); ++i_in_lane) {
-    int target_idx = current_lane[i_in_lane];
+  vector<int>& lane_cars = lanes_[lane];
+  for (size_t i_in_lane = 0; i_in_lane < lane_cars.size(); ++i_in_lane) {
+    int target_idx = lane_cars[i_in_lane];
     double target_s = cars_[target_idx].raw[SF::S];
     double dist = GetDistanceForward(ego_s, target_s);
     if (dist < min_dist) {
@@ -115,52 +113,93 @@ bool SensorFusion::IsLaneOpen(int lane, LocalizationData const& ego, Map const& 
   return true;
 }
 
+/*
+ * cout format:
+ *  ctr:12345.6<<
+ *  ctr:12345.6   cur:12345.6<< enough
+ *  ctr:12345.6   cur:12345.6<< better
+ *  ctr:12345.6<< cur:12345.6   worse
+ *  ctr:12345.6   cur:12345.6<< blocked
+ *                                    12345.6<< 12345.6<< 12345.6<<
+ *  ^0                                ^42                          ^84
+ */
 int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
   int center = 1;
   int best = center;
-  double max_free_dist = GetPredictedDistanceBeforeObstructed(center, ego, map);
+  double center_dist = GetPredictedDistanceBeforeObstructed(center, ego, map);
+  double max_free_dist = center_dist;
   int current = DToLane(ego.d);  // the current lane is the fallback option
-  cout << current << " free lane distances: center: " << max_free_dist;
-
+  bool log = true;
+  if (log) {
+    cout << std::setw(11) << std::setprecision(2) << "center:" << center_dist;
+  }
+    
+  
   // consider center lane first
   if (max_free_dist > CFG::kKeepLaneAboveFreeDist
       && (current == center || IsLaneOpen(center, ego, map))) {
-    cout << " it is enough, not considering others. Choise >>> " << center << endl;
+    if (log)
+      cout << "<<" << endl;
     return center;
   }
 
   // consider current lane next if it is not the center
   // only these two lanes can be valid choices so far  // TODO: add some path finding
+  double cur_dist = GetPredictedDistanceBeforeObstructed(current, ego, map);
+  vector<double> dists(3, -1.0);  // for logging
+  dists[1] = center_dist;
+  dists[ego.GetLane()] = cur_dist;
   if (current != center) {
-    double dist = GetPredictedDistanceBeforeObstructed(current, ego, map);
-    if (dist > CFG::kKeepLaneAboveFreeDist) {
-      cout << ", current: " << dist << " is enough, not considering others. Choise >>> " << current << endl;
+    if (cur_dist > CFG::kKeepLaneAboveFreeDist) {
+      if (log)
+        cout << "   cur:" << cur_dist << "<< enough" << endl;
       return current;
-    } else if (dist > max_free_dist) {
-      cout << ", current: " << dist << " is better than center. Choise >>> " << current << endl;
+    } else if (cur_dist > center_dist) {
+      if (log)
+        cout << "   cur:" << cur_dist << "<< better" << endl;
       return current;
     } else {
-      cout << ", current: " << dist << " is worse than center, ";
       if (IsLaneOpen(center, ego, map)) {
-        cout << "choise >>> " << center << endl;
+        if (log)
+          cout << "<< cur:" << cur_dist << "   worse";
         return center;
       } else {
-        cout << "but center is blocked. Choise: " << current << endl;
+        if (log)
+          cout << "   cur:" << cur_dist << "<< blocked" << endl;
         return current;
       }
     }
   } else {  // current == center but not good enough, check side lanes
     for (int lane = max(current - 1, 0); lane <= min(current + 1, CFG::kLaneCount - 1); lane += 2) {
-      if (lane == current || lane == center)
+      if (dists[lane] > -1)  // already has value
         continue;
       double free_dist = GetPredictedDistanceBeforeObstructed(lane, ego, map);
-      cout << "   " << lane << ": " << free_dist;
       if (free_dist > max_free_dist && IsLaneOpen(lane, ego, map)) {
+        dists[lane] = free_dist;
         best = lane;
         max_free_dist = free_dist;
       }
     }
-    cout << " best dist: " << max_free_dist << " choice >>> " << best << endl;
+
+    if (log) {
+      switch (best) {
+       case 0:
+         cout << "                                   "
+           << dists[0] << "<< " << dists[1] << "   " << dists[2] << "   " << endl;
+         break;
+       case 1:
+         cout << "                                   "
+           << dists[0] << "   " << dists[1] << "<< " << dists[2] << "   " << endl;
+         break;
+       case 2:
+         cout << "                                   "
+           << dists[0] << "   " << dists[1] << "   " << dists[2] << "<< " << endl;
+         break;
+       default:
+         cout << "invalid result:                      :" << std::setw(3) << best;
+         break;
+      }
+    }
     return best;
   }
 }

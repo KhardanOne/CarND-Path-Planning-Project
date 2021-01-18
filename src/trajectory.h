@@ -4,6 +4,7 @@
 #include "vehicle.h"
 #include "map.h"
 #include <vector>
+
 using std::vector;
 
 /*
@@ -36,4 +37,4 @@ void CreateTrajectory(vector<double>& out_x_vals,
   LocalizationData const& ego,
   PreviousPath const& prev_path);
 
-#endif //  TRAJECTORY_H
+#endif  // TRAJECTORY_H
