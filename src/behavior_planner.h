@@ -19,7 +19,7 @@ class BehaviorPlanner {
                      Map const& map,
                      LocalizationData const& ego_loc,
                      vector<vector<double>> const& sensor_fusion,
-                     PreviousPath const& prev_path);
+                     PrevPathFromSim const& prev_path);
 
  private:
   static void PrintStats(LocalizationData const& ego_loc, Map const& map);

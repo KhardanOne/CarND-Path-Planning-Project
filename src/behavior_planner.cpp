@@ -21,7 +21,8 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
                                     Map const& map,
                                     LocalizationData const& ego,
                                     vector<vector<double>> const& sensor_fusion,
-                                    PreviousPath const& prev_path) {
+                                    PrevPathFromSim const& sim_prev) {
+  TrajectoryBuilder trajectory_builder(map, ego, sim_prev);
   SensorFusion sf(sensor_fusion, map.max_s_);
   int lane = ego.GetLane();
 
@@ -80,8 +81,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     target_dist = GetDistanceForward(ego.s, raw[SF::S]);
     target_speed = Speed(raw[SF::VX], raw[SF::VY]);
   }
-  CreateTrajectory(out_x_vals, out_y_vals, target_lane_,
-                   target_dist, target_speed, map, ego, prev_path);
+  trajectory_builder.Create(out_x_vals, out_y_vals, target_lane_, target_dist, target_speed);
 }
 
 void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,

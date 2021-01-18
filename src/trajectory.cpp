@@ -1,109 +1,59 @@
 #include "trajectory.h"
 #include "helpers.h"
 #include "config.h"
-#include "spline.h"
+#include "tk_spline.h"
 #include <cmath>
 #include <iostream>
 
 using std::min;
 using std::max;
+using std::cout;
+using std::endl;
+using std::vector;
 
-void CreateTrajectory(vector<double>& out_x_vals,
-                      vector<double>& out_y_vals,
-                      int target_lane,
-                      double front_car_dist,
-                      double front_car_speed_mps,
-                      Map const& map,
-                      LocalizationData const& ego,
-                      PreviousPath const& prev_path) {
-  double ref_yaw = 0.0;
+TrajectoryBuilder::TrajectoryBuilder(Map const& map,
+                                     LocalizationData const& ego,
+                                     PrevPathFromSim const& sim_prev)
+  : map_(map), ego_(ego), sim_prev_(sim_prev) {
+  SetRef();
+}
 
-  int prev_node_count = (int)prev_path.x_vals.size();
-  long long nodes_to_keep = min(prev_node_count, CFG::kTrajectoryMinNodeCount);
-  double prev_displacement = 0.0;  // Distance between last and penultimate positions
-
-  // define the spline
-  vector<double> spline_def_x;
-  vector<double> spline_def_y;
-  if (nodes_to_keep >= 3
-      && Distance(prev_path.x_vals[nodes_to_keep-3], prev_path.y_vals[nodes_to_keep-3],
-                  prev_path.x_vals[nodes_to_keep-2], prev_path.y_vals[nodes_to_keep-2]) > 0.0001
-      && Distance(prev_path.x_vals[nodes_to_keep-2], prev_path.y_vals[nodes_to_keep-2],
-                  prev_path.x_vals[nodes_to_keep-1], prev_path.y_vals[nodes_to_keep-1]) > 0.0001) {
-    // use the penultimate point as a reference
-    spline_def_x.push_back(prev_path.x_vals[nodes_to_keep-3]);
-    spline_def_x.push_back(prev_path.x_vals[nodes_to_keep-2]);
-    spline_def_x.push_back(prev_path.x_vals[nodes_to_keep-1]);
-    spline_def_y.push_back(prev_path.y_vals[nodes_to_keep-3]);
-    spline_def_y.push_back(prev_path.y_vals[nodes_to_keep-2]);
-    spline_def_y.push_back(prev_path.y_vals[nodes_to_keep-1]);
-    ref_yaw = atan2(spline_def_y[2] - spline_def_y[1], spline_def_x[2] - spline_def_x[1]);
-    --nodes_to_keep;  // without this the last node will be added twice later, causing problems
-    prev_displacement = Distance(spline_def_x[1], spline_def_y[1], spline_def_x[2], spline_def_y[2]);
+tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
+  SplineDef spline_def;
+  enum class DebugType {CONTINUE, START_NEW} dbg;
+  if (CanContinuePrevPath()) {
+    spline_def = SplineDef(sim_prev_);
+    dbg = DebugType::CONTINUE;
   } else {
-    // the car is the reference point
-    // calculate a past point and a future point
-    double const& car_x_present = ego.x;
-    double const& car_y_present = ego.y;
-    ref_yaw = DegToRad(ego.yaw);
-    constexpr double small_dist = 3.0;  // to define another point right in front of us
-    double delta_x = small_dist * cos(ref_yaw);
-    double delta_y = small_dist * sin(ref_yaw);
-
-    // add past, present and future points
-    spline_def_x.push_back(car_x_present - delta_x);
-    spline_def_x.push_back(car_x_present);
-    spline_def_x.push_back(car_x_present + delta_x);
-    spline_def_y.push_back(car_y_present - delta_y);
-    spline_def_y.push_back(car_y_present);
-    spline_def_y.push_back(car_y_present + delta_y);
-
-    // the car was standing still
-    prev_displacement = 0.0;
+    spline_def = SplineDef(ego_);
+    dbg = DebugType::START_NEW;
   }
-
-  // build trajectory from here
-  double ref_x = spline_def_x[1];
-  double ref_y = spline_def_y[1];
-
-  // add 3 more points in the Distance
-  vector<double> far_wp0 = GetXY(ego.s + 40.0, LaneToD(target_lane), map);
-  vector<double> far_wp1 = GetXY(ego.s + 60.0, LaneToD(target_lane), map);
-  vector<double> far_wp2 = GetXY(ego.s + 80.0, LaneToD(target_lane), map);
-  spline_def_x.push_back(far_wp0[0]);
-  spline_def_x.push_back(far_wp1[0]);
-  spline_def_x.push_back(far_wp2[0]);
-  spline_def_y.push_back(far_wp0[1]);
-  spline_def_y.push_back(far_wp1[1]);
-  spline_def_y.push_back(far_wp2[1]);
-
-  // transform coordinates into car coordinate system
-  for (size_t i = 0; i < spline_def_x.size(); ++i) {
-    double shift_x = spline_def_x[i] - ref_x;
-    double shift_y = spline_def_y[i] - ref_y;
-    spline_def_x[i] = shift_x * cos(-ref_yaw) - shift_y * sin(-ref_yaw);
-    spline_def_y[i] = shift_x * sin(-ref_yaw) + shift_y * cos(-ref_yaw);
-  }
-
+  spline_def.Extend(target_lane, map_, ref_x_, ref_y_, ref_yaw_);
+  if (spline_def.x[5] < 0.0)
+    cout << "ERROR: Extend returned a negative value" << endl;
+  vector<double> xValsBeforeTransform(spline_def.x.begin(), spline_def.x.end());
+  spline_def.TransformCoordsIntoRefSys(ref_x_, ref_y_, ref_yaw_);
+  if (spline_def.x[5] < 0.0)
+    cout << "ERROR: Extend or TransferCoordsIntoRefSys returned a negative value" << endl;
   tk::spline spl;
-  spl.set_points(spline_def_x, spline_def_y);
+  spl.set_points(spline_def.x, spline_def.y);
+  return spl;
+}
 
-  // store the coordinates in the output vector, starting with the previous ones
-  // keep only the first nodes_to_keep positions
-  out_x_vals.clear();
-  out_y_vals.clear();
-  out_x_vals.reserve(CFG::kTrajectoryNodeCount);
-  out_y_vals.reserve(CFG::kTrajectoryNodeCount);
-  if (prev_node_count >= 3) {
-    for (int i = 0; i < nodes_to_keep; ++i) {
-      out_x_vals.push_back(prev_path.x_vals[i]);
-      out_y_vals.push_back(prev_path.y_vals[i]);
-    }
-  }
-  size_t output_wip_size = out_x_vals.size();
+void TrajectoryBuilder::Create(vector<double>& out_x_vals,
+                               vector<double>& out_y_vals,
+                               int target_lane,
+                               double front_car_dist,
+                               double front_car_speed_mps) {
+  size_t kept_nodes_count = NumKeptNodes(sim_prev_);
+  InitOutAndCopy(kept_nodes_count, out_x_vals, out_y_vals);
+  tk::spline spl = DefineSpline(target_lane);
 
 
-  // calculate how to break up the spline points
+
+
+
+// calculate how to break up the spline points
   constexpr double target_x = 30.0;
   double target_y = spl(target_x);
   double target_dist = sqrt(target_x*target_x + target_y*target_y);
@@ -112,7 +62,7 @@ void CreateTrajectory(vector<double>& out_x_vals,
   double split_num = target_dist / CFG::kPreferredDistPerFrame;
   double preferred_delta_x = target_x / split_num;
   double x_ratio = target_x / target_dist;
-  double last_x_displacement = prev_displacement * x_ratio;
+  double last_x_displacement = ref_displacement_ * x_ratio;
 
   // calculate target pose
   double target_car_dist, target_car_speed_mps;
@@ -123,9 +73,9 @@ void CreateTrajectory(vector<double>& out_x_vals,
     target_car_dist = max(front_car_dist, CFG::kCarLength);
     target_car_speed_mps = front_car_speed_mps;
   }
-  target_car_dist -= (CFG::kCarLength + CFG::kBufferDist + output_wip_size * CFG::kPreferredDistPerFrame);
+  target_car_dist -= (CFG::kCarLength + CFG::kBufferDist + kept_nodes_count * CFG::kPreferredDistPerFrame);
   
-  double delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;  // TODO: FIXIT: the trajectory end position and speed should be used
+  double delta_speed_mps = target_car_speed_mps - ego_.speed_mph * CFG::kMphToMps;  // TODO: FIXIT: the trajectory end position and speed should be used
   // Distance from the target car where braking needs to be started
   double dist_to_start_braking = (delta_speed_mps > 0.0) ?
     0.0 : delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
@@ -145,8 +95,8 @@ void CreateTrajectory(vector<double>& out_x_vals,
   double x_disp_deccel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
 
   // create trajectory nodes
-  for (size_t i = output_wip_size; i < CFG::kTrajectoryNodeCount; ++i) {
-    delta_speed_mps = target_car_speed_mps - ego.speed_mph * CFG::kMphToMps;  // TODO: FIXIT: the trajectory end position and speed should be used
+  for (size_t i = kept_nodes_count; i < CFG::kTrajectoryNodeCount; ++i) {
+    delta_speed_mps = target_car_speed_mps - ego_.speed_mph * CFG::kMphToMps;  // TODO: FIXIT: the trajectory end position and speed should be used
     // Distance from the target car where braking needs to be started
     dist_to_start_braking = (delta_speed_mps > 0.0) ?
       0.0 : delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
@@ -170,14 +120,124 @@ void CreateTrajectory(vector<double>& out_x_vals,
     x_progress = x;
 
     // transform coordinates back
-    double delta_x = x;
-    double delta_y = y;
-    x = delta_x * cos(ref_yaw) - delta_y * sin(ref_yaw);
-    y = delta_x * sin(ref_yaw) + delta_y * cos(ref_yaw);
-    x += ref_x;
-    y += ref_y;
+    //double delta_x = x;
+    //double delta_y = y;
+    //x = delta_x * cos(ref_yaw_) - delta_y * sin(ref_yaw_);
+    //y = delta_x * sin(ref_yaw_) + delta_y * cos(ref_yaw_);
+    //x += ref_x_;
+    //y += ref_y_;
+    vector<double> pos = TransformCoordsFromRef(x, y);
+    out_x_vals.push_back(pos[0]);
+    out_y_vals.push_back(pos[1]);
+  }
+}
 
-    out_x_vals.push_back(x);
-    out_y_vals.push_back(y);
+
+
+size_t TrajectoryBuilder::NumKeptNodes(PrevPathFromSim const& sim_prev) {
+  size_t prev_node_count = sim_prev.x_vals.size();
+  size_t nodes_to_keep = min(prev_node_count, (size_t)CFG::kTrajectoryMinNodeCount);
+  return nodes_to_keep;
+}
+
+bool TrajectoryBuilder::CanContinuePrevPath() const {
+  if (sim_prev_.x_vals.size() < 3)
+    return false;
+  size_t last = sim_prev_.x_vals.size() - 1;
+  constexpr double epsilon = 0.0001;
+  return (Distance(sim_prev_.x_vals[last], sim_prev_.y_vals[last],
+                   sim_prev_.x_vals[last - 1], sim_prev_.y_vals[last - 1]) > epsilon
+          && Distance(sim_prev_.x_vals[last - 1], sim_prev_.y_vals[last - 1],
+                      sim_prev_.x_vals[last - 2], sim_prev_.y_vals[last - 2]) > epsilon);
+}
+
+void TrajectoryBuilder::InitOutAndCopy(size_t nodes_to_copy_count,
+                                       vector<double>& out_x_vals,
+                                       vector<double>& out_y_vals) const {
+  out_x_vals.clear();
+  out_y_vals.clear();
+  out_x_vals.reserve(CFG::kTrajectoryNodeCount);
+  out_y_vals.reserve(CFG::kTrajectoryNodeCount);
+  if (sim_prev_.x_vals.size() < 3)
+    cout << "WARNING: TrajectoryBuilder::InitOutAndCopy(): Less than 3 nodes!" << endl;
+  for (size_t i = 0; i < nodes_to_copy_count; ++i) {
+    out_x_vals.push_back(sim_prev_.x_vals[i]);
+    out_y_vals.push_back(sim_prev_.y_vals[i]);
+  }
+}
+
+vector<double> TrajectoryBuilder::TransformCoordsFromRef(double x, double y) const {
+  double delta_x = x;
+  double delta_y = y;
+  x = delta_x * cos(ref_yaw_) - delta_y * sin(ref_yaw_);
+  y = delta_x * sin(ref_yaw_) + delta_y * cos(ref_yaw_);
+  x += ref_x_;
+  y += ref_y_;
+  return { x, y };
+}
+
+void TrajectoryBuilder::SetRef() {
+  if (CanContinuePrevPath()) {
+    size_t last = NumKeptNodes(sim_prev_) - 1;
+    ref_yaw_ = atan2(sim_prev_.y_vals[last] - sim_prev_.y_vals[last-1],
+                     sim_prev_.x_vals[last] - sim_prev_.x_vals[last-1]);
+    ref_x_ = sim_prev_.x_vals[last];
+    ref_y_ = sim_prev_.y_vals[last];
+    ref_displacement_ = Distance(sim_prev_.x_vals[last-1], sim_prev_.y_vals[last-1],
+                                 sim_prev_.x_vals[last], sim_prev_.y_vals[last]);
+  }  else {
+    ref_yaw_ = DegToRad(ego_.yaw);
+    ref_x_ = ego_.x;
+    ref_y_ = ego_.y;
+    ref_displacement_ = 0.0;
+  }
+}
+
+// Needs at least 3 x and y values in input
+TrajectoryBuilder::SplineDef::SplineDef(PrevPathFromSim const& sim_prev) {
+  size_t nodes_to_keep = NumKeptNodes(sim_prev);
+  x.push_back(sim_prev.x_vals[nodes_to_keep - 3]);
+  y.push_back(sim_prev.y_vals[nodes_to_keep - 3]);
+  x.push_back(sim_prev.x_vals[nodes_to_keep - 2]);
+  y.push_back(sim_prev.y_vals[nodes_to_keep - 2]);
+  x.push_back(sim_prev.x_vals[nodes_to_keep - 1]);
+  y.push_back(sim_prev.y_vals[nodes_to_keep - 1]);
+}
+
+// Create 2 points in front of the car. The 1st new point is the ref.
+TrajectoryBuilder::SplineDef::SplineDef(LocalizationData const& ego) {
+  double ref_yaw = DegToRad(ego.yaw);
+  constexpr double small_dist = 10.0;  // to define another point right in front of us
+  double delta_x = small_dist * cos(ref_yaw);
+  double delta_y = small_dist * sin(ref_yaw);
+  x.push_back(ego.x - delta_x);
+  x.push_back(ego.x);
+  x.push_back(ego.x + delta_x);
+  y.push_back(ego.y - delta_y);
+  y.push_back(ego.y);
+  y.push_back(ego.y + delta_y);
+}
+
+
+void TrajectoryBuilder::SplineDef::Extend(int target_lane, const Map& map,
+                                          double ref_x, double ref_y, double ref_yaw) {
+  vector<double> sd = GetFrenet(ref_x, ref_y, ref_yaw, map);      // TODO: this function was never tested. Test it.
+  vector<double> far_wp0 = GetXY(sd[0] + 30.0, LaneToD(target_lane), map);
+  vector<double> far_wp1 = GetXY(sd[0] + 60.0, LaneToD(target_lane), map);
+  vector<double> far_wp2 = GetXY(sd[0] + 90.0, LaneToD(target_lane), map);
+  x.push_back(far_wp0[0]);
+  x.push_back(far_wp1[0]);
+  x.push_back(far_wp2[0]);
+  y.push_back(far_wp0[1]);
+  y.push_back(far_wp1[1]);
+  y.push_back(far_wp2[1]);
+}
+
+void TrajectoryBuilder::SplineDef::TransformCoordsIntoRefSys(double ref_x, double ref_y, double ref_yaw) {
+  for (size_t i = 0; i < x.size(); ++i) {
+    double shift_x = x[i] - ref_x;
+    double shift_y = y[i] - ref_y;
+    x[i] = shift_x * cos(-ref_yaw) - shift_y * sin(-ref_yaw);
+    y[i] = shift_x * sin(-ref_yaw) + shift_y * cos(-ref_yaw);
   }
 }

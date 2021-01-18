@@ -55,7 +55,7 @@ int main() {
             j[1]["speed"],
           };
 
-          PreviousPath prev_path{
+          PrevPathFromSim prev_path{
             j[1]["previous_path_x"],
             j[1]["previous_path_y"],
             j[1]["end_path_s"],
@@ -150,7 +150,7 @@ int main() {
             j[1]["speed"],
           };
 
-          PreviousPath prev_path{
+          PrevPathFromSim prev_path{
             j[1]["previous_path_x"],
             j[1]["previous_path_y"],
             j[1]["end_path_s"],
