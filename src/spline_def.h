@@ -22,8 +22,8 @@ struct SplineDef {
   void Extend(int target_lane, const Map& map,
               double ref_x, double ref_y, double ref_yaw);
 
-  vector<double> x;
-  vector<double> y;
+  vector<double> xs;
+  vector<double> ys;
 };
 
 #endif  // SPLINE_H

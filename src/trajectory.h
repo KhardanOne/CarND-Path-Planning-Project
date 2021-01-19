@@ -22,7 +22,7 @@ class TrajectoryBuilder {
                     LocalizationData const& ego,
                     PrevPathFromSim const& sim_prev);
 
-  static bool Verify(vector<double> const& xs, vector<double> const& ys);
+  static bool VerifyIsMonotonic(vector<double> const& xs, vector<double> const& ys);
   tk::spline DefineSpline(int target_lane) const;
   static size_t NumKeptNodes(PrevPathFromSim const& sim_prev);
   /*

@@ -19,10 +19,10 @@ TrajectoryBuilder::TrajectoryBuilder(Map const& map,
   : map_(map), ego_(ego), sim_prev_(sim_prev) {
   SetRef();
   if (CFG::kDebug)
-    Verify(sim_prev.x_vals, sim_prev.y_vals);
+    VerifyIsMonotonic(sim_prev.x_vals, sim_prev.y_vals);
 }
 
-bool TrajectoryBuilder::Verify(vector<double> const& xs, vector<double> const& ys) {
+bool TrajectoryBuilder::VerifyIsMonotonic(vector<double> const& xs, vector<double> const& ys) {
   size_t count = xs.size();
   int x_greater = 0;
   int x_smaller = 0;
@@ -41,7 +41,7 @@ bool TrajectoryBuilder::Verify(vector<double> const& xs, vector<double> const& y
     }
   }
   if (count > 0 && x_smaller < count-1 && x_greater < count-1 && y_smaller < count-1 && y_greater < count-1) {
-    cout << "ERROR: TrajectoryBuilder::Verify(): x or y should be monotonously increasing or decreasing!" << endl;
+    cout << "ERROR: TrajectoryBuilder::VerifyIsMonotonic(): x or y should be monotonously increasing or decreasing!" << endl;
     cout << "    Count: " << count << " x_smaller:" << x_smaller << " x_greater:" << x_greater;
     cout << " y_smaller:" << y_smaller << " y_greater:" << y_greater << endl;
     return false;
@@ -61,15 +61,15 @@ tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
     dbg = DebugType::START_NEW;
   }
   spline_def.Extend(target_lane, map_, ref_x_, ref_y_, ref_yaw_);
-  if (spline_def.x[5] < 0.0)
+  if (spline_def.xs[5] < 0.0)
     cout << "ERROR: Extend returned a negative value" << endl;
-  vector<double> xValsBeforeTransform(spline_def.x.begin(), spline_def.x.end());
-  vector<double> yValsBeforeTransform(spline_def.y.begin(), spline_def.y.end());
-  TransformCoordsIntoRefSys(spline_def.x, spline_def.y);
-  if (CFG::kDebug && spline_def.x[5] < 0.0)
+  vector<double> xValsBeforeTransform(spline_def.xs.begin(), spline_def.xs.end());
+  vector<double> yValsBeforeTransform(spline_def.ys.begin(), spline_def.ys.end());
+  TransformCoordsIntoRefSys(spline_def.xs, spline_def.ys);
+  if (CFG::kDebug && spline_def.xs[5] < 0.0)
     cout << "ERROR: Extend or TransferCoordsIntoRefSys returned a negative value" << endl;
   tk::spline spl;
-  spl.set_points(spline_def.x, spline_def.y);
+  spl.set_points(spline_def.xs, spline_def.ys);
   return spl;
 }
 
@@ -161,7 +161,7 @@ void TrajectoryBuilder::Create(vector<double>& out_x_vals,
     out_y_vals.push_back(pos[1]);
   }
   if (CFG::kDebug)
-    Verify(out_x_vals, out_y_vals);
+    VerifyIsMonotonic(out_x_vals, out_y_vals);
 }
 
 size_t TrajectoryBuilder::NumKeptNodes(PrevPathFromSim const& sim_prev) {
