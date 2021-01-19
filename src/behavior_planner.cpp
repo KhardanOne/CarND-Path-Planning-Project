@@ -3,6 +3,7 @@
 #include "config.h"
 #include "trajectory.h"
 #include "sensor_fusion.h"
+#include "pid.h"
 #include <cmath>
 #include <iostream>
 #include <iomanip>

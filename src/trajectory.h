@@ -3,6 +3,7 @@
 
 #include "vehicle.h"
 #include "map.h"
+#include "pid.h"
 #include "tk_spline.h"
 #include <vector>
 

@@ -2,6 +2,7 @@
 #include "helpers.h"
 #include "config.h"
 #include "tk_spline.h"
+#include "pid.h"
 #include <cmath>
 #include <iostream>
 
@@ -32,6 +33,7 @@ tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
   if (spline_def.x[5] < 0.0)
     cout << "ERROR: Extend returned a negative value" << endl;
   vector<double> xValsBeforeTransform(spline_def.x.begin(), spline_def.x.end());
+  vector<double> yValsBeforeTransform(spline_def.y.begin(), spline_def.y.end());
   spline_def.TransformCoordsIntoRefSys(ref_x_, ref_y_, ref_yaw_);
   if (spline_def.x[5] < 0.0)
     cout << "ERROR: Extend or TransferCoordsIntoRefSys returned a negative value" << endl;
@@ -49,11 +51,7 @@ void TrajectoryBuilder::Create(vector<double>& out_x_vals,
   InitOutAndCopy(kept_nodes_count, out_x_vals, out_y_vals);
   tk::spline spl = DefineSpline(target_lane);
 
-
-
-
-
-// calculate how to break up the spline points
+  // calculate how to break up the spline points
   constexpr double target_x = 30.0;
   double target_y = spl(target_x);
   double target_dist = sqrt(target_x*target_x + target_y*target_y);
@@ -77,37 +75,48 @@ void TrajectoryBuilder::Create(vector<double>& out_x_vals,
   
   double delta_speed_mps = target_car_speed_mps - ego_.speed_mph * CFG::kMphToMps;  // TODO: FIXIT: the trajectory end position and speed should be used
   // Distance from the target car where braking needs to be started
-  double dist_to_start_braking = (delta_speed_mps > 0.0) ?
+  double dist_to_start_breaking = (delta_speed_mps > 0.0) ?
     0.0 : delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
   // Distance from ego car where braking needs to be started
-  dist_to_start_braking = target_car_dist - dist_to_start_braking;
+  dist_to_start_breaking = target_car_dist - dist_to_start_breaking;
 
-  // PID controller to smoothen follow distance
-  constexpr double pid_kp = 0.1;
-  constexpr double pid_kd = 0.5;
-  static double pid_prev_p = 0.0;
-  double& pid_p = dist_to_start_braking;
-  double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p-pid_prev_p), 1.0), -1.0));
-  pid_prev_p = pid_p;
+  // PID controller to smoothen follow distance                   // TODO: this cannot work since instatiation, only P
+  //constexpr double pid_kp = 0.1;                                  // TODO: reset it when?
+  //constexpr double pid_kd = 0.5;
+  //static double pid_prev_p = 0.0;
+  //double& pid_p = dist_to_start_breaking;
+  //double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p-pid_prev_p), 1.0), -1.0));
+  //pid_prev_p = pid_p;
+  //double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
+  //double x_disp_deccel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
   //cout << "PID out:" << pid_out << " P:" << pid_p << " D:" << (pid_p - pid_prev_p)
-  //  << " dist to start braking: " << dist_to_start_braking << endl;
-  double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
-  double x_disp_deccel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
+  //  << " dist to start braking: " << dist_to_start_breaking << endl;
+  
+  
+  // TODO: abs prevents errors... by other errors?
 
+  static PID throttle_pid(0.1, 0.0, 0.5, 0.0, 1.0);
+  static PID brake_pid(0.1, 0.0, 0.5, 0.0, 1.0);
+  double throttle_pid_out = throttle_pid.Update(dist_to_start_breaking);
+  double brake_pid_out = brake_pid.Update(dist_to_start_breaking);
+  double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * throttle_pid_out;
+  double x_disp_deccel = CFG::kMaxDistPerFrameDecrement * x_ratio * brake_pid_out;
+
+  
   // create trajectory nodes
   for (size_t i = kept_nodes_count; i < CFG::kTrajectoryNodeCount; ++i) {
     delta_speed_mps = target_car_speed_mps - ego_.speed_mph * CFG::kMphToMps;  // TODO: FIXIT: the trajectory end position and speed should be used
     // Distance from the target car where braking needs to be started
-    dist_to_start_braking = (delta_speed_mps > 0.0) ?
+    dist_to_start_breaking = (delta_speed_mps > 0.0) ?
       0.0 : delta_speed_mps * delta_speed_mps / CFG::kPreferredDeccelMpss;
     // Distance from ego car where braking needs to be started
-    dist_to_start_braking = target_car_dist - dist_to_start_braking;
+    dist_to_start_breaking = target_car_dist - dist_to_start_breaking;
     double x_displacement;
 
     //cout << i << " target speed:" << target_car_speed_mps << " ego speed:" << ego.speed_mph
-    //  << " delta:" << delta_speed_mps << " start braking in " << dist_to_start_braking << " meters" << endl;
+    //  << " delta:" << delta_speed_mps << " start braking in " << dist_to_start_breaking << " meters" << endl;
 
-    if (dist_to_start_braking < 0.0) { //  TODO: improve
+    if (dist_to_start_breaking < 0.0) { //  TODO: improve
       // deccelerate
       x_displacement = max(last_x_displacement - x_disp_deccel, 0.0);
     } else {
@@ -119,14 +128,7 @@ void TrajectoryBuilder::Create(vector<double>& out_x_vals,
     double y = spl(x);
     x_progress = x;
 
-    // transform coordinates back
-    //double delta_x = x;
-    //double delta_y = y;
-    //x = delta_x * cos(ref_yaw_) - delta_y * sin(ref_yaw_);
-    //y = delta_x * sin(ref_yaw_) + delta_y * cos(ref_yaw_);
-    //x += ref_x_;
-    //y += ref_y_;
-    vector<double> pos = TransformCoordsFromRef(x, y);
+    vector<double> pos = TransformCoordsFromRef(x, y);  // TODO: check if any point "turns back" when braking
     out_x_vals.push_back(pos[0]);
     out_y_vals.push_back(pos[1]);
   }
@@ -217,7 +219,6 @@ TrajectoryBuilder::SplineDef::SplineDef(LocalizationData const& ego) {
   y.push_back(ego.y);
   y.push_back(ego.y + delta_y);
 }
-
 
 void TrajectoryBuilder::SplineDef::Extend(int target_lane, const Map& map,
                                           double ref_x, double ref_y, double ref_yaw) {

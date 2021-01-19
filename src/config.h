@@ -17,6 +17,7 @@ using std::vector;
 namespace CFG {
   enum Verbose {kOff, kImportant, kAll};
   constexpr int    kVerbose = kAll;
+  constexpr bool   kDebug = true;
 
   // basic constants used in calculations in this file
   constexpr double kMphToMps = 0.44704;
