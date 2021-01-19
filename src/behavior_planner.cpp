@@ -23,6 +23,8 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
                                     LocalizationData const& ego,
                                     vector<vector<double>> const& sensor_fusion,
                                     PrevPathFromSim const& sim_prev) {
+  static size_t frame_count = 0;
+  ++frame_count;
   TrajectoryBuilder trajectory_builder(map, ego, sim_prev);
   SensorFusion sf(sensor_fusion, map.max_s_);
   int lane = ego.GetLane();
@@ -30,7 +32,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   switch (state_) {
 
     case kKeepLane: {
-      cout << "KEEP_LANE   ";
+      cout << std::setw(7) << frame_count << ": KEEP_LANE   ";
       target_lane_ = sf.GetTargetLane(ego, map);
       if (target_lane_ > lane) {
         state_ = kGoRight;

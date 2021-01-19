@@ -2,7 +2,7 @@
 #define BEHAVIOR_PLANNER_H
 
 #include "trajectory.h"
-#include "vehicle.h"
+#include "localization.h"
 #include "map.h"
 #include "sensor_fusion.h"
 #include <string>

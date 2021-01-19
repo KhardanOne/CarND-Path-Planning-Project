@@ -2,7 +2,7 @@
 #define SENSOR_FUSION_H
 
 #include "map.h"
-#include "vehicle.h"
+#include "localization.h"
 #include <vector>
 
 using std::vector;

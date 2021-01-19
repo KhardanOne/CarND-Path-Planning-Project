@@ -1,6 +1,6 @@
 #include "sensor_fusion.h"
 #include "helpers.h"
-#include "vehicle.h"
+#include "localization.h"
 #include "map.h"
 #include "config.h"
 #include <vector>

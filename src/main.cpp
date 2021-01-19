@@ -7,7 +7,7 @@
 
 #include "config.h"
 #include "map.h"
-#include "vehicle.h"
+#include "localization.h"
 #include "behavior_planner.h"
 #include "helpers.h"
 #include "json.hpp"

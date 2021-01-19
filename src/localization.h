@@ -12,5 +12,5 @@ struct LocalizationData {
   double yaw;
   double speed_mph;
 };
-
+  
 #endif  // VEHICLE_H

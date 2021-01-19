@@ -13,6 +13,14 @@
 using std::string;
 using std::vector;
 
+// received data from the simulator
+struct PrevPathFromSim {
+  vector<double> x_vals;
+  vector<double> y_vals;
+  double end_s;
+  double end_d;
+};
+
 // calculates center d value from lane number
 double LaneToD(int lane);
 

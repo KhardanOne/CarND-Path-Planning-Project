@@ -1,23 +1,14 @@
 #ifndef TRAJECTORY_H
 #define TRAJECTORY_H
 
-#include "vehicle.h"
+#include "localization.h"
 #include "map.h"
 #include "pid.h"
 #include "tk_spline.h"
+#include "helpers.h"
 #include <vector>
 
 using std::vector;
-
-/*
- * Received from the simulator.
- */
-struct PrevPathFromSim {
-  vector<double> x_vals;
-  vector<double> y_vals;
-  double end_s;
-  double end_d;
-};
 
 class TrajectoryBuilder {
  public:
@@ -31,8 +22,9 @@ class TrajectoryBuilder {
                     LocalizationData const& ego,
                     PrevPathFromSim const& sim_prev);
 
+  static bool Verify(vector<double> const& xs, vector<double> const& ys);
   tk::spline DefineSpline(int target_lane) const;
-
+  static size_t NumKeptNodes(PrevPathFromSim const& sim_prev);
   /*
    * Creates trajectory in form of two vectors, one for x and one for y coords.
    * @param out_x_vals OUTPUT vector of x coordinates
@@ -48,34 +40,28 @@ class TrajectoryBuilder {
               double front_car_speed_mps);
 
  protected:
-  static size_t NumKeptNodes(PrevPathFromSim const& sim_prev);
   bool CanContinuePrevPath() const;
-
   void InitOutAndCopy(size_t nodes_to_copy_count,
                       vector<double>& out_x_vals,
                       vector<double>& out_y_vals) const;
-  vector<double> TransformCoordsFromRef(double x, double y) const;
+  /* 
+   * Transform a single x,y coordinate back to the map coord-sys.
+   * from the coordinate system defined by ref_x_, ref_y_ and ref_yaw_.
+   */
+  vector<double> TransformCoordFromRef(double x, double y) const;
 
+  /*
+   * Transform all coordinates from [x|y]_in_out_vals to the
+   * coordinate system defined by ref_x_, ref_y_ and ref_yaw_.
+   */
+  void TransformCoordsIntoRefSys(vector<double>& x_in_out_vals,
+                                 vector<double>& y_in_out_vals) const;
   /*
    * Finds the last point, where we should look forward.
    * It finds among the simulator's previous nodes if exist.
    * Otherwise it is the car's position.
    */
   void SetRef();
-
-  struct SplineDef {
-    SplineDef() = default;
-    SplineDef(PrevPathFromSim const& sim_prev);
-    SplineDef(LocalizationData const& ego);
-
-    // add 3 more points in the distance for a smooth spine
-    void Extend(int target_lane, const Map& map,
-                double ref_x, double ref_y, double ref_yaw);
-    void TransformCoordsIntoRefSys(double ref_x, double ref_y, double ref_yaw);
-
-    vector<double> x;
-    vector<double> y;
-  };
 
  private:
   Map const& map_;
