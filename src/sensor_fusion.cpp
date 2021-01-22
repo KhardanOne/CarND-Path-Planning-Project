@@ -129,7 +129,7 @@ int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
   double center_dist = GetPredictedDistanceBeforeObstructed(center, ego, map);
   double max_free_dist = center_dist;
   int current = DToLane(ego.d);  // the current lane is the fallback option
-  bool log = true;
+  bool log = false;
   if (log) {
     cout << std::setw(11) << std::setprecision(2) << "center:" << center_dist;
   }

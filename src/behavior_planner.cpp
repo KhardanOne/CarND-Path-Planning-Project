@@ -23,6 +23,10 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
                                     LocalizationData const& ego,
                                     vector<vector<double>> const& sensor_fusion,
                                     PrevPathFromSim const& sim_prev) {
+  // print debug info
+  bool log = false;
+
+  static size_t nodes_added = 0;
   static size_t frame_count = 0;
   ++frame_count;
   TrajectoryBuilder trajectory_builder(map, ego, sim_prev);
@@ -32,7 +36,8 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   switch (state_) {
 
     case kKeepLane: {
-      cout << std::setw(7) << frame_count << ": KEEP_LANE   ";
+      if (log) 
+        cout << std::setw(7) << frame_count << ": KEEP_LANE   ";
       target_lane_ = sf.GetTargetLane(ego, map);
       if (target_lane_ > lane) {
         state_ = kGoRight;
@@ -43,7 +48,8 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     }
 
     case kGoLeft: {
-      cout << "GO_LEFT     ";
+      if (log)
+        cout << "GO_LEFT     ";
       if (IsInLaneCenter(ego.d, target_lane_)) {
         state_ = kKeepLane;
       }
@@ -51,7 +57,8 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     }
 
     case kGoRight: {
-      cout << "GO_RIGHT    ";
+      if (log)
+        cout << "GO_RIGHT    ";
       if (IsInLaneCenter(ego.d, target_lane_)) {
         state_ = kKeepLane;
       }
@@ -59,19 +66,18 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     }
 
     default: {
-      cout << "INVALID     ";
+      if (log)
+        cout << "INVALID     ";
     }
   }
 
-  // print debug info
-  bool log = false;
   if (log) {
     // cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);
     PrintStats(ego, map);
     cout << "ego lane:" << lane << " s:" << ego.s << " (" << ego.x << ","
       << ego.y << "@" << ego.yaw << ") speed:" << ego.speed_mph << "mph";
+    sf.PrintLaneChangeInfo(ego, map);
   }
-  sf.PrintLaneChangeInfo(ego, map);
 
   // prepare inf for CreateTrajectory
   double target_dist, target_speed;
@@ -84,7 +90,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     target_dist = GetDistanceForward(ego.s, raw[SF::S]);
     target_speed = Speed(raw[SF::VX], raw[SF::VY]);
   }
-  trajectory_builder.Create(out_x_vals, out_y_vals, target_lane_, target_dist, target_speed);
+  nodes_added += trajectory_builder.Create(out_x_vals, out_y_vals, target_lane_, target_dist, target_speed);
 }
 
 void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,

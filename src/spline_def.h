@@ -9,16 +9,20 @@ struct PrevPathFromSim;
 struct LocalizationData;
 struct Map;
 
+/* 
+ * Definitin of a spline.
+ * The xs and ys values are the inputs for tk_spline set_points().
+ */
 struct SplineDef {
   SplineDef() = default;
   
-  // Needs at least 3 x and y values in input
+  // Needs at least 3 x and y values in sim_prev to be used as starting tangent.
   SplineDef(PrevPathFromSim const& sim_prev);
   
-  // Create 2 points in front of the car. The 1st new point is the ref.
+  // Create 2 points in front of the car, and use them as starting tangent.
   SplineDef(LocalizationData const& ego);
 
-  // add 3 more points in the distance for a smooth spine
+  // Add 3 more points in the distance for a smooth spine.
   void Extend(int target_lane, const Map& map,
               double ref_x, double ref_y, double ref_yaw);
 
