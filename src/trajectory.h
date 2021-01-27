@@ -11,7 +11,8 @@
 
 class TrajectoryBuilder {
  public:
-  /*
+  
+   /*
    * Constructor
    * @param map used for frenet conversion, back and forth
    * @param ego the own car positional data received from the sim
@@ -25,9 +26,9 @@ class TrajectoryBuilder {
                     PrevPathFromSim const& sim_prev,
                     bool force_restart = false);
 
-  static bool VerifyIsMonotonic(std::vector<double> const& xs,
-                                std::vector<double> const& ys,
-                                double cur_x, double cur_y);
+  static bool IsMonotonic(std::vector<double> const& xs,
+                          std::vector<double> const& ys,
+                          double cur_x, double cur_y);
   static bool AreSpeedAccJerkOk(std::vector<double> const& xs,
                                 std::vector<double> const& ys,
                                 double cur_x,
@@ -40,9 +41,9 @@ class TrajectoryBuilder {
                                       double cur_y,
                                       double cur_yaw,
                                       double cur_speed);
-
   tk::spline DefineSpline(int target_lane) const;
   size_t NumNodesToKeep(bool force_restart) const;
+  
   /*
    * Creates trajectory in form of two vectors, one for x and one for y coords.
    * @param out_x_vals OUTPUT vector of x coordinates
@@ -134,13 +135,12 @@ class TrajectoryBuilder {
   PrevPathFromSim const& sim_prev_;
   size_t kept_prev_nodes_count_;
 
-  // TODO: is ref the ego or the last? Make sure it is the same everywhwere !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // The last previous node. Continue the trajectory from here.
   // Coordinate transformation is also done to/from ref system.
-  double ref_x_ = -1.0;  // the last node, continue from here
+  double ref_x_ = -1.0;
   double ref_y_ = -1.0;
   double ref_yaw_ = -1.0;
   double ref_speed_ = 0.0;
-  //double ref_displacement_ = 0.0;  // the distance between the last two nodes
 };
 
 #endif  // TRAJECTORY_H

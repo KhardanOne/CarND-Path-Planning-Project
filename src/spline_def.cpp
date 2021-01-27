@@ -53,6 +53,6 @@ void SplineDef::Extend(int target_lane, Map const& map, EgoCar const& ego) {
   ys.push_back(far_wp1[1]);
   ys.push_back(far_wp2[1]);
   if (CFG::kDebug) {
-    //TrajectoryBuilder::VerifyIsMonotonic(xs, ys, ref_x, ref_y);
+    //TrajectoryBuilder::IsMonotonic(xs, ys, ref_x, ref_y);
   } 
 }

@@ -46,13 +46,13 @@ TrajectoryBuilder::TrajectoryBuilder(Map const& map,
       cout << "change in ego.yaw greater than 5 deg: " << RadToDeg(ego.yaw-dbg_prev_yaw) << endl;
     dbg_prev_yaw = ego.yaw;
 
-    VerifyIsMonotonic(sim_prev.x_vals, sim_prev.y_vals, ego.x, ego.y);
+    IsMonotonic(sim_prev.x_vals, sim_prev.y_vals, ego.x, ego.y);
   }
 }
 
 
-bool TrajectoryBuilder::VerifyIsMonotonic(vector<double> const& xs, vector<double> const& ys,
-                                          double cur_x, double cur_y) {
+bool TrajectoryBuilder::IsMonotonic(vector<double> const& xs, vector<double> const& ys,
+                                    double cur_x, double cur_y) {
   size_t count = xs.size();
   int x_greater = 0;
   int x_smaller = 0;
@@ -79,7 +79,7 @@ bool TrajectoryBuilder::VerifyIsMonotonic(vector<double> const& xs, vector<doubl
     }
   }
   if (count > 0 && x_smaller < count && x_greater < count && y_smaller < count && y_greater < count) {
-    cout << "ERROR: TrajectoryBuilder::VerifyIsMonotonic(): x or y should be monotonously increasing or decreasing!" << endl;
+    cout << "ERROR: TrajectoryBuilder::IsMonotonic(): x or y should be monotonously increasing or decreasing!" << endl;
     cout << "    Count: " << count << " x_smaller:" << x_smaller << " x_greater:" << x_greater;
     cout << " y_smaller:" << y_smaller << " y_greater:" << y_greater << endl;
     return false;
@@ -117,7 +117,7 @@ bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
                                                 double cur_y,
                                                 double cur_yaw,
                                                 double cur_speed) {
-  // empty is Ok
+  // empty is OK
   if (xs.size() == 0) {
     cout << "AreAccelerationsJerksOk(): vector is empty and that is OK." << endl;
     return true;
@@ -216,8 +216,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
                                  double front_car_dist,
                                  double front_car_speed) {
   bool log = false;
-  size_t nodes_added = 0;
-  nodes_added += InitOutAndCopy(out_x_vals, out_y_vals);  // TODO: THIS IS IT!!! It copies even when restarting
+  size_t nodes_added = InitOutAndCopy(out_x_vals, out_y_vals);
   tk::spline spl = DefineSpline(target_lane);
 
   // calculate how to break up the spline points
@@ -299,7 +298,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
     ++nodes_added;
   }
   if (CFG::kDebug) {
-    VerifyIsMonotonic(out_x_vals, out_y_vals, ego_.x, ego_.y);
+    IsMonotonic(out_x_vals, out_y_vals, ego_.x, ego_.y);
     AreAccelerationsJerksOk(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.yaw, ego_.speed);
   }
   return nodes_added;
@@ -350,7 +349,7 @@ bool TrajectoryBuilder::CanContinuePrevPath() const {
 
   const vector<double> xs(sim_prev_.x_vals.end() - 3, sim_prev_.x_vals.end());
   const vector<double> ys(sim_prev_.y_vals.end() - 3, sim_prev_.y_vals.end());
-  bool monotonic = VerifyIsMonotonic(xs, ys, ego_.x, ego_.y);
+  bool monotonic = IsMonotonic(xs, ys, ego_.x, ego_.y);
   if (!monotonic) {
     cout << "WARNING: TrajectoryBuilder::CanContinuePrePath(): prev path is not monotonic! - START NEW PATH" << endl;
     return false;
