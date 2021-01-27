@@ -1,6 +1,6 @@
 #include "sensor_fusion.h"
 #include "helpers.h"
-#include "localization.h"
+#include "ego_car.h"
 #include "map.h"
 #include "config.h"
 #include <vector>
@@ -72,7 +72,7 @@ vector<double> SensorFusion::GetPredictedPos(int car_id, double time) {
   return result;
 }
 
-vector<double> SensorFusion::GetPredictedPos(LocalizationData const& ego, double time) {
+vector<double> SensorFusion::GetPredictedPos(EgoCar const& ego, double time) {
   vector<double> result;
   result.push_back(ego.x + ego.speed * cos(ego.yaw));
   result.push_back(ego.y + ego.speed * sin(ego.yaw));
@@ -89,11 +89,11 @@ double SensorFusion::GetLaneSpeedMps(double from_s, int lane) {
   }
 }
 
-double SensorFusion::GetPredictedS(LocalizationData const& ego, double time) {
+double SensorFusion::GetPredictedS(EgoCar const& ego, double time) {
   return ego.s + time * ego.speed;
 }
 
-bool SensorFusion::IsLaneOpen(int lane, LocalizationData const& ego, Map const& map) {
+bool SensorFusion::IsLaneOpen(int lane, EgoCar const& ego, Map const& map) {
   vector<int> const& lane_cars = lanes_[lane];
   size_t cars_count = lane_cars.size();
   double dist_limit_pow2 = CFG::kLaneWindowHalfLength * CFG::kLaneWindowHalfLength;
@@ -122,7 +122,7 @@ bool SensorFusion::IsLaneOpen(int lane, LocalizationData const& ego, Map const& 
  *                                    12345.6<< 12345.6<< 12345.6<<
  *  ^0                                ^42                          ^84
  */
-int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
+int SensorFusion::GetTargetLane(EgoCar const& ego, Map const& map) {
   int center = 1;
   int best = center;
   double center_dist = GetPredictedDistanceBeforeObstructed(center, ego, map);
@@ -205,7 +205,7 @@ int SensorFusion::GetTargetLane(LocalizationData const& ego, Map const& map) {
 
 double SensorFusion::GetPredictedDistanceBeforeObstructed(
     int lane,
-    LocalizationData const& ego,
+    EgoCar const& ego,
     Map const& map) {
   double max_free_dist;
   int front_id = GetCarInFront(ego.s, lane);
@@ -243,7 +243,7 @@ double SensorFusion::GetPredictedDistanceBeforeObstructed(
  *    [   324324.344   ]    [    234234234    ]     [   34324.3434234    ]
  *    [!! 324324.344 !!]  o>[!!  234234234  !!]<o   [!! 34324.3434234  !!]
  */
-void SensorFusion::PrintLaneChangeInfo(LocalizationData const& ego, Map const& map) {
+void SensorFusion::PrintLaneChangeInfo(EgoCar const& ego, Map const& map) {
   vector<double> dists;
   dists.push_back(GetPredictedDistanceBeforeObstructed(0, ego, map));
   dists.push_back(GetPredictedDistanceBeforeObstructed(1, ego, map));

@@ -7,7 +7,7 @@
 
 #include "config.h"
 #include "map.h"
-#include "localization.h"
+#include "ego_car.h"
 #include "behavior_planner.h"
 #include "helpers.h"
 #include "json.hpp"
@@ -46,13 +46,13 @@ int main() {
         if (event == "telemetry") {
           // j[1] is the data JSON object
           
-          LocalizationData ego_loc{
+          EgoCar ego_loc{
             j[1]["x"],
             j[1]["y"],
             j[1]["s"],
             j[1]["d"],
             DegToRad(j[1]["yaw"]),
-            j[1]["speed"] * CFG::kMphToMps,
+            MphToMps(j[1]["speed"]),
           };
 
           PrevPathFromSim prev_path{
@@ -141,13 +141,13 @@ int main() {
         if (event == "telemetry") {
           // j[1] is the data JSON object
 
-          LocalizationData ego_loc{
+          EgoCar ego_loc{
             j[1]["x"],
             j[1]["y"],
             j[1]["s"],
             j[1]["d"],
             DegToRad(j[1]["yaw"]),
-            j[1]["speed"] * CFG::kMphToMps,
+            MphToMps(j[1]["speed"]),
           };
 
           PrevPathFromSim prev_path{

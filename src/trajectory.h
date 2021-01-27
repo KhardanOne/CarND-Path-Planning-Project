@@ -1,7 +1,7 @@
 #ifndef TRAJECTORY_H
 #define TRAJECTORY_H
 
-#include "localization.h"
+#include "ego_car.h"
 #include "map.h"
 #include "pid.h"
 #include "tk_spline.h"
@@ -21,7 +21,7 @@ class TrajectoryBuilder {
    *  determined automatically whether or not to restart.
    */
   TrajectoryBuilder(Map const& map,
-                    LocalizationData const& ego,
+                    EgoCar const& ego,
                     PrevPathFromSim const& sim_prev,
                     bool force_restart = false);
 
@@ -130,7 +130,7 @@ class TrajectoryBuilder {
 
  private:
   Map const& map_;
-  LocalizationData const& ego_;
+  EgoCar const& ego_;
   PrevPathFromSim const& sim_prev_;
   size_t kept_prev_nodes_count_;
 

@@ -7,11 +7,11 @@
 
 /*
  * Postfixes:
- * S - seconds
- * Mph - miles per hour
- * Mps - meters per seconds
- * Mpss - meters per seconds squared
- * Mpsss - meters per second^3
+ * s - seconds
+ * mph - miles per hour
+ * mps - meters per seconds
+ * mpss - meters per second^2
+ * mpsss - meters per second^3
  */
 namespace CFG {
   enum Verbose {kOff, kImportant, kAll};

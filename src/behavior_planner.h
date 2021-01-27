@@ -2,7 +2,7 @@
 #define BEHAVIOR_PLANNER_H
 
 #include "trajectory.h"
-#include "localization.h"
+#include "ego_car.h"
 #include "map.h"
 #include "sensor_fusion.h"
 #include <string>
@@ -17,12 +17,12 @@ class BehaviorPlanner {
   void GetTrajectory(std::vector<double>& out_x_vals,
                      std::vector<double>& out_y_vals,
                      Map const& map,
-                     LocalizationData const& ego_loc,
+                     EgoCar const& ego_loc,
                      std::vector<std::vector<double>> const& sensor_fusion,
                      PrevPathFromSim const& prev_path);
 
  private:
-  static void PrintStats(LocalizationData const& ego_loc, Map const& map);
+  static void PrintStats(EgoCar const& ego_loc, Map const& map);
 
   std::vector<std::string> state_names_;
   int state_;

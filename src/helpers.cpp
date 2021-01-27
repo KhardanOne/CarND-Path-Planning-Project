@@ -47,6 +47,9 @@ string HasData(string s) {
 double DegToRad(double x) { return x * M_PI / 180; }
 double RadToDeg(double x) { return x * 180 / M_PI; }
 
+double MphToMps(double speed) { return speed * 0.44704; }
+double MpsToMph(double speed) { return speed / 0.44704; }
+
 double GetDistanceForward(double from_s, double to_s) {
   double distance = to_s - from_s;
   distance = (distance >= 0.0) ? distance : distance + CFG::kLapLength;  // handle lap restarts

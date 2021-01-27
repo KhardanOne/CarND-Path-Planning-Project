@@ -43,6 +43,8 @@ std::string HasData(std::string s);
 double DegToRad(double x);
 double RadToDeg(double x);
 
+double MphToMps(double speed);
+double MpsToMph(double speed);
 
 // Returns the distance to the s coordinate in forward direction
 //  considering that the map is circular.

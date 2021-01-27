@@ -1,9 +1,9 @@
-#ifndef VEHICLE_H
-#define VEHICLE_H
+#ifndef EGO_CAR_H
+#define EGO_CAR_H
 
 #include "helpers.h"
 
-struct LocalizationData {
+struct EgoCar {
   inline int GetLane() const { return DToLane(d); }
   double x;
   double y;
@@ -17,4 +17,4 @@ struct LocalizationData {
   double speed;
 };
   
-#endif  // VEHICLE_H
+#endif  // EGO_CAR_H

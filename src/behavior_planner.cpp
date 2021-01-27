@@ -21,7 +21,7 @@ BehaviorPlanner::BehaviorPlanner()
 void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
                                     vector<double>& out_y_vals,
                                     Map const& map,
-                                    LocalizationData const& ego,
+                                    EgoCar const& ego,
                                     std::vector<std::vector<double>> const& sensor_fusion,
                                     PrevPathFromSim const& sim_prev) {
   // print debug info
@@ -77,7 +77,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     // cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);
     PrintStats(ego, map);
     cout << "ego lane:" << lane << " s:" << ego.s << " (" << ego.x << "," << ego.y
-      << "@" << RadToDeg(ego.yaw) << ") speed:" << ego.speed / CFG::kMphToMps << "mph";
+      << "@" << RadToDeg(ego.yaw) << ") speed:" << MpsToMph(ego.speed) << "mph";
     sf.PrintLaneChangeInfo(ego, map);
   }
 
@@ -95,7 +95,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   nodes_added += trajectory_builder.Create(out_x_vals, out_y_vals, target_lane_, target_dist, target_speed);
 }
 
-void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,
+void BehaviorPlanner::PrintStats(EgoCar const & ego_loc,
                                  Map const & map) {
   static size_t next_s_index = 0;
   static size_t s_size = map.waypoints_s.size();
@@ -110,6 +110,6 @@ void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,
       << " passed, s=" << s << " d=" << ego_loc.d
       << " x=" << ego_loc.x << " y=" << ego_loc.y
       << " yaw=" << RadToDeg(ego_loc.yaw) << "deg "
-      << " speed=" << ego_loc.speed / CFG::kMphToMps << "mps" << endl;
+      << " speed=" << MpsToMph(ego_loc.speed) << "mph" << endl;
   }
 }

@@ -1,7 +1,7 @@
 #include "config.h"
 #include "spline_def.h"
 #include "helpers.h"
-#include "localization.h"
+#include "ego_car.h"
 #include "trajectory.h"
 #include <iostream>
 
@@ -41,7 +41,7 @@ SplineDef::SplineDef(double x, double y, double yaw) {
 
 // TODO: use more points if available
 // TODO: check for sudden changes
-void SplineDef::Extend(int target_lane, Map const& map, LocalizationData const& ego) {
+void SplineDef::Extend(int target_lane, Map const& map, EgoCar const& ego) {
   // TODO: if GetFrenet() is just approximate (which probably is), then it causes jumps !!!!!!!!!!!!!!!!!!!!!!!!!!!!
   vector<double> far_wp0 = GetXY(ego.s + kFarPointDist1, LaneToD(target_lane), map);
   vector<double> far_wp1 = GetXY(ego.s + kFarPointDist2, LaneToD(target_lane), map);

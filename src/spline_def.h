@@ -4,7 +4,7 @@
 #include <vector>
 
 struct PrevPathFromSim;
-struct LocalizationData;
+struct EgoCar;
 struct Map;
 
 /* 
@@ -31,7 +31,7 @@ struct SplineDef {
    */
   void Extend(int target_lane,
               Map const& map,
-              LocalizationData const& ego);
+              EgoCar const& ego);
 
   std::vector<double> xs;
   std::vector<double> ys;

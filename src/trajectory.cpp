@@ -19,7 +19,7 @@ using std::vector;
 // TODO: add GetYawAtEnd(), then continue from that angle!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // TODO: try to generate 100% new trajectory each frame (instead of extending old one)
 TrajectoryBuilder::TrajectoryBuilder(Map const& map,
-                                     LocalizationData const& ego,
+                                     EgoCar const& ego,
                                      PrevPathFromSim const& sim_prev,
                                      bool force_restart)
   : map_(map),
@@ -32,7 +32,7 @@ TrajectoryBuilder::TrajectoryBuilder(Map const& map,
   if (CFG::kDebug) {
     static double dbg_last_dx = 0.0;
     cout << "size:" << sim_prev.x_vals.size() << " ego x:" << ego.x << " y:" << ego.y
-      << " mph:" << ego.speed / CFG::kMphToMps << " deg:" << RadToDeg(ego.yaw);
+      << " mph:" << MpsToMph(ego.speed) << " deg:" << RadToDeg(ego.yaw);
     if (sim_prev.x_vals.size() > 0) {
       cout<<" -> prev x[0]:"<<sim_prev.x_vals[0]<<" y[0]:"<<sim_prev.y_vals[0];
       cout << " dx:" << sim_prev.x_vals[0] - ego.x << " ddx:"<<ego.x-sim_prev.x_vals[0]-dbg_last_dx;
