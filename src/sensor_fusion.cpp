@@ -74,8 +74,8 @@ vector<double> SensorFusion::GetPredictedPos(int car_id, double time) {
 
 vector<double> SensorFusion::GetPredictedPos(LocalizationData const& ego, double time) {
   vector<double> result;
-  result.push_back(ego.x + ego.speed * cos(DegToRad(ego.yaw_deg)));
-  result.push_back(ego.y + ego.speed * sin(DegToRad(ego.yaw_deg)));
+  result.push_back(ego.x + ego.speed * cos(ego.yaw));
+  result.push_back(ego.y + ego.speed * sin(ego.yaw));
   return result;
 }
 

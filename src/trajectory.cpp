@@ -9,7 +9,6 @@
 #include <iostream>
 #include <iomanip>
 
-
 using std::min;
 using std::max;
 using std::cout;
@@ -33,7 +32,7 @@ TrajectoryBuilder::TrajectoryBuilder(Map const& map,
   if (CFG::kDebug) {
     static double dbg_last_dx = 0.0;
     cout << "size:" << sim_prev.x_vals.size() << " ego x:" << ego.x << " y:" << ego.y
-      << " mph:" << ego.speed / CFG::kMphToMps << " deg:" << ego.yaw_deg;
+      << " mph:" << ego.speed / CFG::kMphToMps << " deg:" << RadToDeg(ego.yaw);
     if (sim_prev.x_vals.size() > 0) {
       cout<<" -> prev x[0]:"<<sim_prev.x_vals[0]<<" y[0]:"<<sim_prev.y_vals[0];
       cout << " dx:" << sim_prev.x_vals[0] - ego.x << " ddx:"<<ego.x-sim_prev.x_vals[0]-dbg_last_dx;
@@ -42,10 +41,10 @@ TrajectoryBuilder::TrajectoryBuilder(Map const& map,
     }
     cout << endl;
 
-    static double dbg_prev_yaw_deg = ego.yaw_deg;;
-    if (abs(ego.yaw_deg - dbg_prev_yaw_deg) > 5)
-      cout << "change in ego.yaw greater than 5 degrees: " << ego.yaw_deg - dbg_prev_yaw_deg << endl;
-    dbg_prev_yaw_deg = ego.yaw_deg;
+    static double dbg_prev_yaw = ego.yaw;
+    if (abs(RadToDeg(ego.yaw - dbg_prev_yaw)) > 5.0)
+      cout << "change in ego.yaw greater than 5 deg: " << RadToDeg(ego.yaw-dbg_prev_yaw) << endl;
+    dbg_prev_yaw = ego.yaw;
 
     VerifyIsMonotonic(sim_prev.x_vals, sim_prev.y_vals, ego.x, ego.y);
   }
@@ -130,7 +129,7 @@ bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
   double& prev_acc_tang = prev_acc[1];
   double& prev_acc_norm = prev_acc[2];
   double prev_speed = cur_speed_mps;
-  double prev_yaw = DegToRad(cur_yaw);
+  double prev_yaw = cur_yaw;
 
   if (prev_acc_comb > CFG::kAccHardLimitMpss) {
     cout << "ERROR: AreAccelerationsJerksOk(): Acc from ego pose to the 0th node too high! AccT:"
@@ -183,7 +182,7 @@ tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
     spline_def = SplineDef(sim_prev_, kept_prev_nodes_count_);
     dbgSplineCreationMethod = DebugType::CONTINUE;
   } else {
-    spline_def = SplineDef(ref_x_, ref_y_, ref_yaw_rad_);
+    spline_def = SplineDef(ref_x_, ref_y_, ref_yaw_);
     dbgSplineCreationMethod = DebugType::START_NEW;
   }
   spline_def.Extend(target_lane, map_, ego_);  // TODO: test
@@ -301,7 +300,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   }
   if (CFG::kDebug) {
     VerifyIsMonotonic(out_x_vals, out_y_vals, ego_.x, ego_.y);
-    AreAccelerationsJerksOk(out_x_vals, out_y_vals, ego_.x, ego_.y, DegToRad(ego_.yaw_deg), ego_.speed);
+    AreAccelerationsJerksOk(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.yaw, ego_.speed);
   }
   return nodes_added;
 }
@@ -358,7 +357,7 @@ bool TrajectoryBuilder::CanContinuePrevPath() const {
   }
 
   bool kinematics_ok = AreSpeedAccJerkOk(sim_prev_.x_vals, sim_prev_.y_vals, ego_.x, ego_.y, 
-                                         DegToRad(ego_.yaw_deg), ego_.speed);
+                                         ego_.yaw, ego_.speed);
   if (!kinematics_ok) {
     cout << "WARNING: Speed, acc or jerk is wrong - START NEW PATH" << endl;
     return false;
@@ -446,10 +445,10 @@ vector<double> TrajectoryBuilder::Acceleration(double cur_x, double cur_y, doubl
 
 
 vector<double> TrajectoryBuilder::TransformCoordFromRef(double x, double y) const {
-  double delta_x = x;
-  double delta_y = y;
-  x = delta_x * cos(ref_yaw_rad_) - delta_y * sin(ref_yaw_rad_);
-  y = delta_x * sin(ref_yaw_rad_) + delta_y * cos(ref_yaw_rad_);
+  const double delta_x = x;
+  const double delta_y = y;
+  x = delta_x * cos(ref_yaw_) - delta_y * sin(ref_yaw_);
+  y = delta_x * sin(ref_yaw_) + delta_y * cos(ref_yaw_);
   x += ref_x_;
   y += ref_y_;
   return { x, y };
@@ -461,8 +460,8 @@ void TrajectoryBuilder::TransformCoordsIntoRefSys(vector<double>& x_in_out_vals,
   for (size_t i = 0; i < x_in_out_vals.size(); ++i) {
     double delta_x = x_in_out_vals[i] - ref_x_;
     double delta_y = y_in_out_vals[i] - ref_y_;
-    x_in_out_vals[i] = delta_x * cos(-ref_yaw_rad_) - delta_y * sin(-ref_yaw_rad_);
-    y_in_out_vals[i] = delta_x * sin(-ref_yaw_rad_) + delta_y * cos(-ref_yaw_rad_);
+    x_in_out_vals[i] = delta_x * cos(-ref_yaw_) - delta_y * sin(-ref_yaw_);
+    y_in_out_vals[i] = delta_x * sin(-ref_yaw_) + delta_y * cos(-ref_yaw_);
   }
 }
 
@@ -471,14 +470,14 @@ void TrajectoryBuilder::SetReferencePose() {
   double ref_displacement = -1.0;
   if (kept_prev_nodes_count_ >= 3) {
     const size_t last = kept_prev_nodes_count_ - 1;
-    ref_yaw_rad_ = atan2(sim_prev_.y_vals[last] - sim_prev_.y_vals[last-1],
-                         sim_prev_.x_vals[last] - sim_prev_.x_vals[last-1]);
+    ref_yaw_ = atan2(sim_prev_.y_vals[last] - sim_prev_.y_vals[last-1],
+                     sim_prev_.x_vals[last] - sim_prev_.x_vals[last-1]);
     ref_x_ = sim_prev_.x_vals[last];
     ref_y_ = sim_prev_.y_vals[last];
     ref_displacement = Distance(sim_prev_.x_vals[last-1], sim_prev_.y_vals[last-1],
                                 sim_prev_.x_vals[last], sim_prev_.y_vals[last]);
   } else {
-    ref_yaw_rad_ = DegToRad(ego_.yaw_deg);
+    ref_yaw_ = ego_.yaw;
     ref_x_ = ego_.x;
     ref_y_ = ego_.y;
     ref_displacement = ego_.speed * CFG::kSimTimeStepS;

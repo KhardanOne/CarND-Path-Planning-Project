@@ -51,7 +51,7 @@ int main() {
             j[1]["y"],
             j[1]["s"],
             j[1]["d"],
-            j[1]["yaw"],
+            DegToRad(j[1]["yaw"]),
             j[1]["speed"] * CFG::kMphToMps,
           };
 
@@ -146,7 +146,7 @@ int main() {
             j[1]["y"],
             j[1]["s"],
             j[1]["d"],
-            j[1]["yaw"],
+            DegToRad(j[1]["yaw"]),
             j[1]["speed"] * CFG::kMphToMps,
           };
 

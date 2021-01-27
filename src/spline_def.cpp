@@ -26,11 +26,11 @@ SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
   ys.push_back(sim_prev.y_vals[nodes_to_keep - 1]);
 }
 
-SplineDef::SplineDef(double x, double y, double yaw_rad) {
+SplineDef::SplineDef(double x, double y, double yaw) {
   if (CFG::kVerbose >= CFG::kImportant)
     cout << "start with 0 nodes";
-  double delta_x = kSmallDist * cos(yaw_rad);
-  double delta_y = kSmallDist * sin(yaw_rad);
+  double delta_x = kSmallDist * cos(yaw);
+  double delta_y = kSmallDist * sin(yaw);
   xs.push_back(x - delta_x);
   xs.push_back(x);
   xs.push_back(x + delta_x);
@@ -41,8 +41,7 @@ SplineDef::SplineDef(double x, double y, double yaw_rad) {
 
 // TODO: use more points if available
 // TODO: check for sudden changes
-void SplineDef::Extend(int target_lane, Map const& map, LocalizationData const& ego
-                       /*double ref_x, double ref_y, double ref_yaw_rad*/) {
+void SplineDef::Extend(int target_lane, Map const& map, LocalizationData const& ego) {
   // TODO: if GetFrenet() is just approximate (which probably is), then it causes jumps !!!!!!!!!!!!!!!!!!!!!!!!!!!!
   vector<double> far_wp0 = GetXY(ego.s + kFarPointDist1, LaneToD(target_lane), map);
   vector<double> far_wp1 = GetXY(ego.s + kFarPointDist2, LaneToD(target_lane), map);

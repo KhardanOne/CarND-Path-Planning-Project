@@ -111,13 +111,13 @@ class TrajectoryBuilder {
                                           double target_y);
   /* 
    * Transform a single x,y coordinate back to the map coord-sys.
-   * from the coordinate system defined by ref_x_, ref_y_ and ref_yaw_rad_.
+   * from the coordinate system defined by ref_x_, ref_y_ and ref_yaw_.
    */
   std::vector<double> TransformCoordFromRef(double x, double y) const;
 
   /*
    * Transform all coordinates from [x|y]_in_out_vals to the
-   * coordinate system defined by ref_x_, ref_y_ and ref_yaw_rad_.
+   * coordinate system defined by ref_x_, ref_y_ and ref_yaw_.
    */
   void TransformCoordsIntoRefSys(std::vector<double>& x_in_out_vals,
                                  std::vector<double>& y_in_out_vals) const;
@@ -138,7 +138,7 @@ class TrajectoryBuilder {
   // Coordinate transformation is also done to/from ref system.
   double ref_x_ = -1.0;  // the last node, continue from here
   double ref_y_ = -1.0;
-  double ref_yaw_rad_ = -1.0;
+  double ref_yaw_ = -1.0;
   double ref_speed_mps_ = 0.0;
   //double ref_displacement_ = 0.0;  // the distance between the last two nodes
 };

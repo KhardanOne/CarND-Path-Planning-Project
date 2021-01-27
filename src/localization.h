@@ -9,7 +9,11 @@ struct LocalizationData {
   double y;
   double s;
   double d;
-  double yaw_deg;
+  
+  // radians
+  double yaw;
+  
+  // meters per second
   double speed;
 };
   

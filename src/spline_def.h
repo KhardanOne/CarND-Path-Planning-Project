@@ -24,10 +24,10 @@ struct SplineDef {
    * Create a point in the front of the car, and a point behind the car.
    * Use those points to create a spline.
    */
-  SplineDef(double x, double y, double yaw_rad);
+  SplineDef(double x, double y, double yaw);
 
   /*
-   * Add 3 more points in the distance for a smooth spline.
+   * Add 3 more points in the distance for a smooth transition.
    */
   void Extend(int target_lane,
               Map const& map,
