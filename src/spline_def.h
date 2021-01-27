@@ -11,20 +11,29 @@ struct Map;
 
 /* 
  * Definitin of a spline.
- * The xs and ys values are the inputs for tk_spline set_points().
+ * The xs and ys values serve as inputs for tk_spline set_points().
  */
 struct SplineDef {
   SplineDef() = default;
   
-  // Needs at least 3 x and y values in sim_prev to be used as starting tangent.
+  /*
+   * Needs at least 3 x and y values in sim_prev to be used 
+   * as starting tangent.
+   */
   SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep);
   
-  // Create 2 points in front of the car, and use them as starting tangent.
-  SplineDef(LocalizationData const& ego);
+  /*
+   * Create a point in the front of the car, and a point behind the car.
+   * Use those points to create a spline.
+   */
+  SplineDef(double x, double y, double yaw_rad);
 
-  // Add 3 more points in the distance for a smooth spine.
-  void Extend(int target_lane, Map const& map, LocalizationData const& ego
-              /*double ref_x, double ref_y, double ref_yaw*/);
+  /*
+   * Add 3 more points in the distance for a smooth spline.
+   */
+  void Extend(int target_lane,
+              Map const& map,
+              LocalizationData const& ego);
 
   vector<double> xs;
   vector<double> ys;

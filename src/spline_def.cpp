@@ -5,17 +5,18 @@
 #include "trajectory.h"
 #include <iostream>
 
-constexpr double kSmallDist = 5.0;       // define a point in front of the car this far away
-constexpr double kFarPointDist1 = 35.0;  // how far away do we want our spline to end
-constexpr double kFarPointDist2 = 60.0;  // TODO: make it dependent on the target car
-constexpr double kFarPointDist3 = 85.0;
+constexpr double kSmallDist = 2.0;       // define a point in front of the car this far away
+constexpr double kFarPointDist1 = 40.0;  // how far away do we want our spline to end
+constexpr double kFarPointDist2 = 70.0;  // TODO: make it dependent on the target car
+constexpr double kFarPointDist3 = 100.0;
 
 using std::cout;
 using std::endl;
 
 
 SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
-  if (true) /*log*/ cout << "nodes_to_keep:" << nodes_to_keep;
+  if (CFG::kVerbose >= CFG::kImportant)
+    cout << "nodes_to_keep:" << nodes_to_keep;
   xs.push_back(sim_prev.x_vals[nodes_to_keep - 3]);
   ys.push_back(sim_prev.y_vals[nodes_to_keep - 3]);
   xs.push_back(sim_prev.x_vals[nodes_to_keep - 2]);
@@ -24,17 +25,17 @@ SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
   ys.push_back(sim_prev.y_vals[nodes_to_keep - 1]);
 }
 
-SplineDef::SplineDef(LocalizationData const& ego) {
-  if (true) /*log*/ cout << "start with 0 nodes";
-  double ref_yaw = DegToRad(ego.yaw_deg);
-  double delta_x = kSmallDist * cos(ref_yaw);
-  double delta_y = kSmallDist * sin(ref_yaw);
-  xs.push_back(ego.x - delta_x);
-  xs.push_back(ego.x);
-  xs.push_back(ego.x + delta_x);
-  ys.push_back(ego.y - delta_y);
-  ys.push_back(ego.y);
-  ys.push_back(ego.y + delta_y);
+SplineDef::SplineDef(double x, double y, double yaw_rad) {
+  if (CFG::kVerbose >= CFG::kImportant)
+    cout << "start with 0 nodes";
+  double delta_x = kSmallDist * cos(yaw_rad);
+  double delta_y = kSmallDist * sin(yaw_rad);
+  xs.push_back(x - delta_x);
+  xs.push_back(x);
+  xs.push_back(x + delta_x);
+  ys.push_back(y - delta_y);
+  ys.push_back(y);
+  ys.push_back(y + delta_y);
 }
 
 // TODO: use more points if available

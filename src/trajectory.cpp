@@ -22,9 +22,15 @@ using std::vector;
 
 TrajectoryBuilder::TrajectoryBuilder(Map const& map,
                                      LocalizationData const& ego,
-                                     PrevPathFromSim const& sim_prev)
-    : map_(map), ego_(ego), sim_prev_(sim_prev), kept_prev_count_(NumNodesToKeep()){
-  
+                                     PrevPathFromSim const& sim_prev,
+                                     bool force_restart)
+  : map_(map),
+    ego_(ego),
+    sim_prev_(sim_prev),
+    kept_prev_nodes_count_(NumNodesToKeep(force_restart)){
+
+  SetReferencePose();
+
   if (CFG::kDebug) {
     static double dbg_last_dx = 0.0;
     cout << "size:" << sim_prev.x_vals.size() << " ego x:" << ego.x << " y:" << ego.y << " mph:" << ego.speed_mph << " deg:" << ego.yaw_deg;
@@ -40,11 +46,9 @@ TrajectoryBuilder::TrajectoryBuilder(Map const& map,
     if (abs(ego.yaw_deg - dbg_prev_yaw_deg) > 5)
       cout << "change in ego.yaw greater than 5 degrees: " << ego.yaw_deg - dbg_prev_yaw_deg << endl;
     dbg_prev_yaw_deg = ego.yaw_deg;
-  } 
 
-  SetRef();
-  if (CFG::kDebug)
     VerifyIsMonotonic(sim_prev.x_vals, sim_prev.y_vals, ego.x, ego.y);
+  }
 }
 
 
@@ -174,16 +178,15 @@ bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
 
 tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
   SplineDef spline_def;
-  enum class DebugType { CONTINUE, START_NEW } dbg;
-  if (kept_prev_count_ >= 3) {  // TODO: delete false!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  //if (false && kept_prev_count_ >= 3) {  // TODO: delete false!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    spline_def = SplineDef(sim_prev_, kept_prev_count_);
-    dbg = DebugType::CONTINUE;
+  enum class DebugType { CONTINUE, START_NEW } dbgSplineCreationMethod;
+  if (kept_prev_nodes_count_ >= 3) {
+    spline_def = SplineDef(sim_prev_, kept_prev_nodes_count_);
+    dbgSplineCreationMethod = DebugType::CONTINUE;
   } else {
-    spline_def = SplineDef(ego_);
-    dbg = DebugType::START_NEW;
+    spline_def = SplineDef(ref_x_, ref_y_, ref_yaw_rad_);
+    dbgSplineCreationMethod = DebugType::START_NEW;
   }
-  spline_def.Extend(target_lane, map_, ego_ /*ref_x_, ref_y_, ref_yaw_rad_*/);  // TODO: check
+  spline_def.Extend(target_lane, map_, ego_);  // TODO: test
   if (spline_def.xs[5] < 0.0)
     cout << "ERROR: Extend returned a negative value" << endl;
   vector<double> xDbgValsBeforeTransform(spline_def.xs.begin(), spline_def.xs.end());
@@ -197,8 +200,8 @@ tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
 }
 
 
-size_t TrajectoryBuilder::NumNodesToKeep() const {
-  if (CanContinuePrevPath()) {
+size_t TrajectoryBuilder::NumNodesToKeep(bool force_restart) const {
+  if (!force_restart && CanContinuePrevPath()) {
     const size_t prev_node_count = sim_prev_.x_vals.size();
     const size_t nodes_to_keep = min(prev_node_count, (size_t)CFG::kTrajectoryMinNodeCount);
     return nodes_to_keep;
@@ -226,9 +229,6 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   const double preferred_delta_x = target_x / split_pieces;
   const double x_ratio = target_x / target_dist;
   
-  double x_progress = 0.0;
-  double last_x_displacement = ref_displacement_ * x_ratio;
-
   // calculate target pose
   double target_car_dist, target_car_speed_mps;
   if (front_car_dist >= CFG::kInfinite) {
@@ -245,6 +245,9 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   double dist_to_start_breaking = (delta_speed_mps > 0.0) ?
       target_car_dist
     : target_car_dist - delta_speed_mps / CFG::kPreferredDecelMpss; // TODO: verify!
+
+  double x_progress = 0.0;
+  double last_x_displacement = ref_speed_mps_ * CFG::kSimTimeStepS * x_ratio;
 
   // PID controller to smoothen the follow distance                 // TODO: this cannot work since instatiation, only P
   constexpr double pid_kp = 0.2;
@@ -269,7 +272,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   //double x_disp_decel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
 
   // create trajectory nodes
-  for (size_t i = kept_prev_count_; i < CFG::kTrajectoryNodeCount; ++i) {
+  for (size_t i = kept_prev_nodes_count_; i < CFG::kTrajectoryNodeCount; ++i) {
     end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed_mph * CFG::kMphToMps);
     delta_speed_mps = target_car_speed_mps - end_speed;
     dist_to_start_breaking = (delta_speed_mps > 0.0) ?
@@ -372,13 +375,13 @@ size_t TrajectoryBuilder::InitOutAndCopy(vector<double>& out_x_vals,
   out_y_vals.clear();
   out_x_vals.reserve(CFG::kTrajectoryNodeCount);
   out_y_vals.reserve(CFG::kTrajectoryNodeCount);
-  if (kept_prev_count_ > 0 && sim_prev_.x_vals.size() >= 3) {
-    for (size_t i = 0; i < kept_prev_count_; ++i) {
+  if (kept_prev_nodes_count_ >= 3 && sim_prev_.x_vals.size() >= 3) {
+    for (size_t i = 0; i < kept_prev_nodes_count_; ++i) {
       out_x_vals.push_back(sim_prev_.x_vals[i]);
       out_y_vals.push_back(sim_prev_.y_vals[i]);
       ++nodes_added;
     }
-  } else if (kept_prev_count_ > 0 && sim_prev_.x_vals.size() < 3) {
+  } else if (kept_prev_nodes_count_ >= 3 && sim_prev_.x_vals.size() < 3) {
     cout << "ERROR: TrajectoryBuilder::InitOutAndCopy(): less than 3 nodes to keep!" << endl;
   }
   return nodes_added;
@@ -464,20 +467,21 @@ void TrajectoryBuilder::TransformCoordsIntoRefSys(vector<double>& x_in_out_vals,
 }
 
 
-void TrajectoryBuilder::SetRef() {
-  if (kept_prev_count_ >= 3) {
-    const size_t last = kept_prev_count_ - 1;
+void TrajectoryBuilder::SetReferencePose() {
+  double ref_displacement = -1.0;
+  if (kept_prev_nodes_count_ >= 3) {
+    const size_t last = kept_prev_nodes_count_ - 1;
     ref_yaw_rad_ = atan2(sim_prev_.y_vals[last] - sim_prev_.y_vals[last-1],
                          sim_prev_.x_vals[last] - sim_prev_.x_vals[last-1]);
     ref_x_ = sim_prev_.x_vals[last];
     ref_y_ = sim_prev_.y_vals[last];
-    ref_displacement_ = Distance(sim_prev_.x_vals[last-1], sim_prev_.y_vals[last-1],
-                                 sim_prev_.x_vals[last], sim_prev_.y_vals[last]);
+    ref_displacement = Distance(sim_prev_.x_vals[last-1], sim_prev_.y_vals[last-1],
+                                sim_prev_.x_vals[last], sim_prev_.y_vals[last]);
   } else {
     ref_yaw_rad_ = DegToRad(ego_.yaw_deg);
     ref_x_ = ego_.x;
     ref_y_ = ego_.y;
-    ref_displacement_ = ego_.speed_mph * CFG::kMphToMps * CFG::kSimTimeStepS;
-    cout << "SetRef(): ref_displacement_ set to " << ref_displacement_ << endl;
+    ref_displacement = ego_.speed_mph * CFG::kMphToMps * CFG::kSimTimeStepS;
   }
+  ref_speed_mps_ = ref_displacement / CFG::kSimTimeStepS;
 }

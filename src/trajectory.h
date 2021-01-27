@@ -17,12 +17,17 @@ class TrajectoryBuilder {
    * @param map used for frenet conversion, back and forth
    * @param ego the own car positional data received from the sim
    * @param prev_path path vectors not yet consumet, received from the sim
+   * @param force_restart == true causes trajectory to be generated without
+   *  taking previous trajectory into consideration; otherwise it is 
+   *  determined automatically whether or not to restart.
    */
   TrajectoryBuilder(Map const& map,
                     LocalizationData const& ego,
-                    PrevPathFromSim const& sim_prev);
+                    PrevPathFromSim const& sim_prev,
+                    bool force_restart = false);
 
-  static bool VerifyIsMonotonic(vector<double> const& xs, vector<double> const& ys,
+  static bool VerifyIsMonotonic(vector<double> const& xs,
+                                vector<double> const& ys,
                                 double cur_x, double cur_y);
   static bool AreSpeedAccJerkOk(vector<double> const& xs,
                                 vector<double> const& ys,
@@ -31,14 +36,14 @@ class TrajectoryBuilder {
                                 double cur_yaw,
                                 double cur_speed_mps);
   static bool AreAccelerationsJerksOk(vector<double> const& xs,
-    vector<double> const& ys,
-    double cur_x,
-    double cur_y,
-    double cur_yaw,
-    double cur_speed_mps);
+                                      vector<double> const& ys,
+                                      double cur_x,
+                                      double cur_y,
+                                      double cur_yaw,
+                                      double cur_speed_mps);
 
   tk::spline DefineSpline(int target_lane) const;
-  size_t NumNodesToKeep() const;
+  size_t NumNodesToKeep(bool force_restart) const;
   /*
    * Creates trajectory in form of two vectors, one for x and one for y coords.
    * @param out_x_vals OUTPUT vector of x coordinates
@@ -58,9 +63,9 @@ class TrajectoryBuilder {
    * Return value is approximate but precise enough.
    * Calculates a linear distance to the last node, not node by node.
    */
-  static double LengthInMeters(vector<double> const& xs, vector<double> const& ys,
+  static double LengthInMeters(vector<double> const& xs,
+                               vector<double> const& ys,
                                double cur_x, double cur_y);
-  
   /*
    * Returns the speed at the end of the trajectory.
    * Calculated from the distance between the penultimate and last node.
@@ -117,19 +122,21 @@ class TrajectoryBuilder {
    * It finds it among the simulator's previous nodes if exists,
    * otherwise it is the car's pose.
    */
-  void SetRef();
+  void SetReferencePose();
 
  private:
   Map const& map_;
   LocalizationData const& ego_;
   PrevPathFromSim const& sim_prev_;
-  size_t kept_prev_count_;
+  size_t kept_prev_nodes_count_;
 
-  // TODO: is ref the ego or the last? Make sure it is the same everywhwer!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // TODO: is ref the ego or the last? Make sure it is the same everywhwere !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // Coordinate transformation is also done to/from ref system.
   double ref_x_ = -1.0;  // the last node, continue from here
   double ref_y_ = -1.0;
   double ref_yaw_rad_ = -1.0;
-  double ref_displacement_ = 0.0;  // the distance between the last two nodes
+  double ref_speed_mps_ = 0.0;
+  //double ref_displacement_ = 0.0;  // the distance between the last two nodes
 };
 
 #endif  // TRAJECTORY_H
