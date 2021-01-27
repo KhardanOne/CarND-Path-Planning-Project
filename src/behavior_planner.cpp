@@ -12,6 +12,7 @@ using std::min;
 using std::max;
 using std::cout;
 using std::endl;
+using std::vector;
 
 BehaviorPlanner::BehaviorPlanner()
     : state_names_({"INVALID", "STARTING", "KEEP_LANE", "GO_LEFT", "GO_RIGHT"}),
@@ -21,7 +22,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
                                     vector<double>& out_y_vals,
                                     Map const& map,
                                     LocalizationData const& ego,
-                                    vector<vector<double>> const& sensor_fusion,
+                                    std::vector<std::vector<double>> const& sensor_fusion,
                                     PrevPathFromSim const& sim_prev) {
   // print debug info
   bool log = false;

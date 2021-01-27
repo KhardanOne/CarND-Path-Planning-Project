@@ -4,7 +4,6 @@
 #include <vector>
 #include <limits>
 #include <float.h>
-using std::vector;
 
 /*
  * Postfixes:

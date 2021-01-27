@@ -5,6 +5,8 @@
 
 using std::cout;
 using std::endl;
+using std::string;
+using std::vector;
 
 double LaneToD(int lane) {
   return CFG::kHalfLaneWidth + lane * CFG::kLaneWidth;

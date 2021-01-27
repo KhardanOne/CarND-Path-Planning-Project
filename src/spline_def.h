@@ -3,8 +3,6 @@
 
 #include <vector>
 
-using std::vector;
-
 struct PrevPathFromSim;
 struct LocalizationData;
 struct Map;
@@ -35,8 +33,8 @@ struct SplineDef {
               Map const& map,
               LocalizationData const& ego);
 
-  vector<double> xs;
-  vector<double> ys;
+  std::vector<double> xs;
+  std::vector<double> ys;
 };
 
 #endif  // SPLINE_H

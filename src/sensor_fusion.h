@@ -5,14 +5,14 @@
 #include "localization.h"
 #include <vector>
 
-using std::vector;
 
 struct SFCar {
-  SFCar(vector<double> const& raw, int lane);
+  SFCar(std::vector<double> const& raw, int lane);
 
-  vector<double> const& raw;
+  std::vector<double> const& raw;
   int lane = -1;
 };
+
 
 /*
  * Keys for SensorFusion vectors of 7 elements.
@@ -21,9 +21,10 @@ struct SF {
   enum Keys {ID, X, Y, VX, VY, S, D};
 };
 
+
 class SensorFusion {
  public:
-  SensorFusion(vector<vector<double>> const& input, double lap_length);
+  SensorFusion(std::vector<std::vector<double>> const& input, double lap_length);
   virtual ~SensorFusion() = default;
 
   /*
@@ -42,8 +43,8 @@ class SensorFusion {
    * @param time how much time in the future to look at (delta T) 
    * @output vector<double> where [0] is x, [1] is y
    */
-  vector<double> GetPredictedPos(int car_id, double time);
-  vector<double> GetPredictedPos(LocalizationData const& ego, double time);
+  std::vector<double> GetPredictedPos(int car_id, double time);
+  std::vector<double> GetPredictedPos(LocalizationData const& ego, double time);
 
   double GetPredictedS(LocalizationData const& ego, double time);
 
@@ -63,8 +64,8 @@ class SensorFusion {
 
   void PrintLaneChangeInfo(LocalizationData const& ego, Map const& map);
 
-  vector<SFCar> cars_;
-  vector<vector<int>> lanes_;  // car ids for each lane
+  std::vector<SFCar> cars_;
+  std::vector<std::vector<int>> lanes_;  // car ids for each lane
   double max_s;
 };
 

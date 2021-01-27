@@ -8,7 +8,6 @@
 #include "helpers.h"
 #include <vector>
 
-using std::vector;
 
 class TrajectoryBuilder {
  public:
@@ -26,17 +25,17 @@ class TrajectoryBuilder {
                     PrevPathFromSim const& sim_prev,
                     bool force_restart = false);
 
-  static bool VerifyIsMonotonic(vector<double> const& xs,
-                                vector<double> const& ys,
+  static bool VerifyIsMonotonic(std::vector<double> const& xs,
+                                std::vector<double> const& ys,
                                 double cur_x, double cur_y);
-  static bool AreSpeedAccJerkOk(vector<double> const& xs,
-                                vector<double> const& ys,
+  static bool AreSpeedAccJerkOk(std::vector<double> const& xs,
+                                std::vector<double> const& ys,
                                 double cur_x,
                                 double cur_y,
                                 double cur_yaw,
                                 double cur_speed_mps);
-  static bool AreAccelerationsJerksOk(vector<double> const& xs,
-                                      vector<double> const& ys,
+  static bool AreAccelerationsJerksOk(std::vector<double> const& xs,
+                                      std::vector<double> const& ys,
                                       double cur_x,
                                       double cur_y,
                                       double cur_yaw,
@@ -53,8 +52,8 @@ class TrajectoryBuilder {
    * @param front_car_speed_mps speed of the car in m/s
    * @returns the number of nodes added
    */
-  size_t Create(vector<double>& out_x_vals,
-                vector<double>& out_y_vals,
+  size_t Create(std::vector<double>& out_x_vals,
+                std::vector<double>& out_y_vals,
                 int target_lane,
                 double front_car_dist,
                 double front_car_speed_mps);
@@ -63,8 +62,8 @@ class TrajectoryBuilder {
    * Return value is approximate but precise enough.
    * Calculates a linear distance to the last node, not node by node.
    */
-  static double LengthInMeters(vector<double> const& xs,
-                               vector<double> const& ys,
+  static double LengthInMeters(std::vector<double> const& xs,
+                               std::vector<double> const& ys,
                                double cur_x, double cur_y);
   /*
    * Returns the speed at the end of the trajectory.
@@ -73,8 +72,11 @@ class TrajectoryBuilder {
    * Calculates the speed from ego car to the first (0th) node if only one
    * node exists.
    */
-  static double GetEndSpeed(vector<double> const& xs, vector<double> const& ys, 
-                            double cur_x, double cur_y, double cur_speed);
+  static double GetEndSpeed(std::vector<double> const& xs,
+                            std::vector<double> const& ys,
+                            double cur_x,
+                            double cur_y,
+                            double cur_speed);
 
  protected:
   /*
@@ -88,35 +90,37 @@ class TrajectoryBuilder {
    * Copies previous nodes from sim_prev_ to out_x_vals and out_y_vals.
    * Returns the number of nodes copied.
    */
-  size_t InitOutAndCopy(vector<double>& out_x_vals,
-                        vector<double>& out_y_vals) const;
+  size_t InitOutAndCopy(std::vector<double>& out_x_vals,
+                        std::vector<double>& out_y_vals) const;
 
-  static bool AreSpeedsOk(vector<double> const& xs, vector<double> const& ys,
-                          double cur_x, double cur_y);
+  static bool AreSpeedsOk(std::vector<double> const& xs,
+                          std::vector<double> const& ys,
+                          double cur_x,
+                          double cur_y);
   /*
    * Calculates the acceleration between the current and the target point.
    * Returns the combined acceleration in meters per second^2.
    * @param cur_yaw radians
    * @returns the combined acceleration, tangential acc, normal acc
    */
-  static vector<double> Acceleration(double cur_x,
-                                     double cur_y,
-                                     double cur_yaw,
-                                     double cur_speed_mps,
-                                     double target_x,
-                                     double target_y);
+  static std::vector<double> Acceleration(double cur_x,
+                                          double cur_y,
+                                          double cur_yaw,
+                                          double cur_speed_mps,
+                                          double target_x,
+                                          double target_y);
   /* 
    * Transform a single x,y coordinate back to the map coord-sys.
    * from the coordinate system defined by ref_x_, ref_y_ and ref_yaw_rad_.
    */
-  vector<double> TransformCoordFromRef(double x, double y) const;
+  std::vector<double> TransformCoordFromRef(double x, double y) const;
 
   /*
    * Transform all coordinates from [x|y]_in_out_vals to the
    * coordinate system defined by ref_x_, ref_y_ and ref_yaw_rad_.
    */
-  void TransformCoordsIntoRefSys(vector<double>& x_in_out_vals,
-                                 vector<double>& y_in_out_vals) const;
+  void TransformCoordsIntoRefSys(std::vector<double>& x_in_out_vals,
+                                 std::vector<double>& y_in_out_vals) const;
   /*
    * Finds the last point, where we should move forward from.
    * It finds it among the simulator's previous nodes if exists,

@@ -14,17 +14,17 @@ class BehaviorPlanner {
   BehaviorPlanner();
   virtual ~BehaviorPlanner() = default;
 
-  void GetTrajectory(vector<double>& out_x_vals,
-                     vector<double>& out_y_vals,
+  void GetTrajectory(std::vector<double>& out_x_vals,
+                     std::vector<double>& out_y_vals,
                      Map const& map,
                      LocalizationData const& ego_loc,
-                     vector<vector<double>> const& sensor_fusion,
+                     std::vector<std::vector<double>> const& sensor_fusion,
                      PrevPathFromSim const& prev_path);
 
  private:
   static void PrintStats(LocalizationData const& ego_loc, Map const& map);
 
-  vector<string> state_names_;
+  std::vector<std::string> state_names_;
   int state_;
   int target_lane_ = 1;
 };

@@ -3,17 +3,15 @@
 
 #include <vector>
 #include <string>
-using std::vector;
-using std::string;
 
 struct Map {
-  Map(string const& file_fqn, double lap_length);
+  Map(std::string const& file_fqn, double lap_length);
 
-  vector<double> waypoints_x;
-  vector<double> waypoints_y;
-  vector<double> waypoints_s;
-  vector<double> waypoints_dx;
-  vector<double> waypoints_dy;
+  std::vector<double> waypoints_x;
+  std::vector<double> waypoints_y;
+  std::vector<double> waypoints_s;
+  std::vector<double> waypoints_dx;
+  std::vector<double> waypoints_dy;
   double max_s;
 };
 

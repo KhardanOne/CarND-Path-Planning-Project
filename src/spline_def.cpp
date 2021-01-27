@@ -12,6 +12,7 @@ constexpr double kFarPointDist3 = 100.0;
 
 using std::cout;
 using std::endl;
+using std::vector;
 
 
 SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
@@ -56,24 +57,3 @@ void SplineDef::Extend(int target_lane, Map const& map, LocalizationData const& 
     //TrajectoryBuilder::VerifyIsMonotonic(xs, ys, ref_x, ref_y);
   } 
 }
-
-//
-//// TODO: use more points if available
-//// TODO: check for sudden changes
-//void SplineDef::Extend(int target_lane, const Map& map,
-//                       double ref_x, double ref_y, double ref_yaw_rad) {
-//  // TODO: if GetFrenet() is just approximate (which probably is), then it causes jumps !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//  vector<double> frenet = GetFrenet(ref_x, ref_y, ref_yaw_rad, map);  // TODO: this function was never tested. Test it.
-//  vector<double> far_wp0 = GetXY(frenet[0] + kFarPointDist1, LaneToD(target_lane), map);
-//  vector<double> far_wp1 = GetXY(frenet[0] + kFarPointDist2, LaneToD(target_lane), map);
-//  vector<double> far_wp2 = GetXY(frenet[0] + kFarPointDist3, LaneToD(target_lane), map);
-//  xs.push_back(far_wp0[0]);
-//  xs.push_back(far_wp1[0]);
-//  xs.push_back(far_wp2[0]);
-//  ys.push_back(far_wp0[1]);
-//  ys.push_back(far_wp1[1]);
-//  ys.push_back(far_wp2[1]);
-//  if (CFG::kDebug) {
-//    TrajectoryBuilder::VerifyIsMonotonic(xs, ys, ref_x, ref_y);
-//  } 
-//}
