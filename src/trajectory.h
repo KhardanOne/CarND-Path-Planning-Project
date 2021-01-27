@@ -33,13 +33,13 @@ class TrajectoryBuilder {
                                 double cur_x,
                                 double cur_y,
                                 double cur_yaw,
-                                double cur_speed_mps);
+                                double cur_speed);
   static bool AreAccelerationsJerksOk(std::vector<double> const& xs,
                                       std::vector<double> const& ys,
                                       double cur_x,
                                       double cur_y,
                                       double cur_yaw,
-                                      double cur_speed_mps);
+                                      double cur_speed);
 
   tk::spline DefineSpline(int target_lane) const;
   size_t NumNodesToKeep(bool force_restart) const;
@@ -49,14 +49,14 @@ class TrajectoryBuilder {
    * @param out_y_vals OUTPUT vector of y coordinates
    * @param target_lane lane index, where the leftmost is 0, rightmost is 2
    * @param front_car_dist the Distance in Frenet coordinate system in meters
-   * @param front_car_speed_mps speed of the car in m/s
+   * @param front_car_speed speed of the car in m/s
    * @returns the number of nodes added
    */
   size_t Create(std::vector<double>& out_x_vals,
                 std::vector<double>& out_y_vals,
                 int target_lane,
                 double front_car_dist,
-                double front_car_speed_mps);
+                double front_car_speed);
   /*
    * Returns the distance from the last node from the car.
    * Return value is approximate but precise enough.
@@ -106,7 +106,7 @@ class TrajectoryBuilder {
   static std::vector<double> Acceleration(double cur_x,
                                           double cur_y,
                                           double cur_yaw,
-                                          double cur_speed_mps,
+                                          double cur_speed,
                                           double target_x,
                                           double target_y);
   /* 
@@ -139,7 +139,7 @@ class TrajectoryBuilder {
   double ref_x_ = -1.0;  // the last node, continue from here
   double ref_y_ = -1.0;
   double ref_yaw_ = -1.0;
-  double ref_speed_mps_ = 0.0;
+  double ref_speed_ = 0.0;
   //double ref_displacement_ = 0.0;  // the distance between the last two nodes
 };
 

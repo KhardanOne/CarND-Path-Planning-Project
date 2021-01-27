@@ -48,7 +48,7 @@ class SensorFusion {
 
   double GetPredictedS(EgoCar const& ego, double time);
 
-  double GetLaneSpeedMps(double from_s, int lane);
+  double GetLaneSpeed(double from_s, int lane);
   bool IsLaneOpen(int lane, EgoCar const& ego, Map const& map);
   int GetTargetLane(EgoCar const& ego, Map const& map);
 

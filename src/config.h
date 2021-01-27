@@ -24,8 +24,8 @@ namespace CFG {
   constexpr double kLapLength = 6945.554;
   constexpr double kInfinite = DBL_MAX;
   constexpr double kSpeedHardLimitMph = 49.8;
-  constexpr double kAccHardLimitMpss = 9.8;
-  constexpr double kJerkHardLimitMpsss = 9.8;
+  constexpr double kAccHardLimit = 9.8;
+  constexpr double kJerkHardLimit = 9.8;
 
   // tuning parameters
   constexpr double kBufferDist = 8.0; //  Distance to follow the forward car from, car center to car center
@@ -37,13 +37,13 @@ namespace CFG {
   constexpr double kTrajectoryLengthS = 2.0;
   constexpr double kTrajectoryMinLengthS = 0.4;
   constexpr double kPreferredSpeedMph = 49.45;
-  constexpr double kPreferredSpeedMps = kPreferredSpeedMph * kMphToMps;
-  constexpr double kMaxAccelMpss = 9.0;
-  constexpr double kPreferredAccelMpss = 4.0;
-  constexpr double kPreferredDecelMpss = 3.0;
-  constexpr double kMaxDecelMpss = 5.0;
+  constexpr double kPreferredSpeed = kPreferredSpeedMph * kMphToMps;
+  constexpr double kMaxAccel = 9.0;
+  constexpr double kPreferredAccel = 4.0;
+  constexpr double kPreferredDecel = 3.0;
+  constexpr double kMaxDecel = 5.0;
   constexpr double kKeepLaneAboveFreeDist = 200.0;
-  // constexpr double kMaxJerkMpsss = 9.0;
+  // constexpr double kMaxJerk = 9.0;
   
   // car might be changing lanes if it is further from lane center
   constexpr double kLaneCenterOffsetLimit = 1.0;
@@ -53,13 +53,13 @@ namespace CFG {
 
   // calculated values
 
-  // constexpr double kMaxSpeedMps = kMaxSpeedMph * kMphToMps;
-  constexpr double kSpeedHardLimitMps = kSpeedHardLimitMph * kMphToMps;
-  constexpr double kSpeedHardLimitDistPerFrame = kSpeedHardLimitMps * kSimTimeStepS;
-  constexpr double kPreferredDistPerFrame = kPreferredSpeedMps * kSimTimeStepS;
-  constexpr double kPreferredDistPerFrameIncrement = kPreferredAccelMpss * kSimTimeStepS * kSimTimeStepS;
-  constexpr double kPreferredDistPerFrameDecrement = kPreferredDecelMpss * kSimTimeStepS * kSimTimeStepS;
-  constexpr double kMaxDistPerFrameDecrement = kMaxDecelMpss * kSimTimeStepS * kSimTimeStepS;
+  // constexpr double kMaxSpeed = kMaxSpeedMph * kMphToMps;
+  constexpr double kSpeedHardLimit = kSpeedHardLimitMph * kMphToMps;
+  constexpr double kSpeedHardLimitDistPerFrame = kSpeedHardLimit * kSimTimeStepS;
+  constexpr double kPreferredDistPerFrame = kPreferredSpeed * kSimTimeStepS;
+  constexpr double kPreferredDistPerFrameIncrement = kPreferredAccel * kSimTimeStepS * kSimTimeStepS;
+  constexpr double kPreferredDistPerFrameDecrement = kPreferredDecel * kSimTimeStepS * kSimTimeStepS;
+  constexpr double kMaxDistPerFrameDecrement = kMaxDecel * kSimTimeStepS * kSimTimeStepS; // TODO: !!! check these squared values
   constexpr int    kTrajectoryNodeCount = int(kTrajectoryLengthS / kSimTimeStepS);
   constexpr int    kTrajectoryMinNodeCount = int(kTrajectoryMinLengthS / kSimTimeStepS);
   constexpr double kHalfLaneWidth = kLaneWidth / 2.0;

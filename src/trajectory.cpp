@@ -91,12 +91,12 @@ bool TrajectoryBuilder::VerifyIsMonotonic(vector<double> const& xs, vector<doubl
 
 bool TrajectoryBuilder::AreSpeedAccJerkOk(vector<double> const& xs,
                                           vector<double> const& ys,
-  double cur_x,
-  double cur_y,
-  double cur_yaw,
-  double cur_speed_mps) {
+                                          double cur_x,
+                                          double cur_y,
+                                          double cur_yaw,
+                                          double cur_speed) {
   bool speeds_ok = AreSpeedsOk(xs, ys, cur_x, cur_y);
-  bool acc_jerk_ok = AreAccelerationsJerksOk(xs, ys, cur_x, cur_y, cur_yaw, cur_speed_mps);
+  bool acc_jerk_ok = AreAccelerationsJerksOk(xs, ys, cur_x, cur_y, cur_yaw, cur_speed);
   if (speeds_ok && acc_jerk_ok) {
     return true;
   }
@@ -113,10 +113,10 @@ bool TrajectoryBuilder::AreSpeedAccJerkOk(vector<double> const& xs,
 
 bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
                                                 vector<double> const& ys,
-  double cur_x,
-  double cur_y,
-  double cur_yaw,
-  double cur_speed_mps) {
+                                                double cur_x,
+                                                double cur_y,
+                                                double cur_yaw,
+                                                double cur_speed) {
   // empty is Ok
   if (xs.size() == 0) {
     cout << "AreAccelerationsJerksOk(): vector is empty and that is OK." << endl;
@@ -124,21 +124,21 @@ bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
   }
 
   // measure the acceleration from ego car to the first (0th) element
-  vector<double> prev_acc = Acceleration(cur_x, cur_y, cur_yaw, cur_speed_mps, xs[0], ys[0]);
+  vector<double> prev_acc = Acceleration(cur_x, cur_y, cur_yaw, cur_speed, xs[0], ys[0]);
   double& prev_acc_comb = prev_acc[0];
   double& prev_acc_tang = prev_acc[1];
   double& prev_acc_norm = prev_acc[2];
-  double prev_speed = cur_speed_mps;
+  double prev_speed = cur_speed;
   double prev_yaw = cur_yaw;
 
-  if (prev_acc_comb > CFG::kAccHardLimitMpss) {
+  if (prev_acc_comb > CFG::kAccHardLimit) {
     cout << "ERROR: AreAccelerationsJerksOk(): Acc from ego pose to the 0th node too high! AccT:"
       << prev_acc_tang << " AccN:" << prev_acc_norm << " AccTotal:" << prev_acc_comb << endl;
     return false;
   }
 
   // check accelerations between the nodes in input vectors
-  double jerk_limit_pow2 = CFG::kJerkHardLimitMpsss * CFG::kJerkHardLimitMpsss;
+  double jerk_limit_pow2 = CFG::kJerkHardLimit * CFG::kJerkHardLimit;
   if (xs.size() > 1) {
     for (size_t cur = 1; cur < xs.size() - 1; ++cur) {
       const size_t prev = cur - 1;
@@ -147,7 +147,7 @@ bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
       double& acc_tang = acc[1];
       double& acc_norm = acc[2];
 
-      if (acc_comb > CFG::kAccHardLimitMpss) {
+      if (acc_comb > CFG::kAccHardLimit) {
         cout << "ERROR: AreAccelerationsJerksOk(): Acc to " << cur << "th node too high! AccT:"
           << acc_tang << " AccN:" << acc_norm << " AccTotal:" << acc_comb << endl;
         return false;
@@ -214,7 +214,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
                                  vector<double>& out_y_vals,
                                  int target_lane,
                                  double front_car_dist,
-                                 double front_car_speed_mps) {
+                                 double front_car_speed) {
   bool log = false;
   size_t nodes_added = 0;
   nodes_added += InitOutAndCopy(out_x_vals, out_y_vals);  // TODO: THIS IS IT!!! It copies even when restarting
@@ -229,24 +229,24 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   const double x_ratio = target_x / target_dist;
   
   // calculate target pose
-  double target_car_dist, target_car_speed_mps;
+  double target_car_dist, target_car_speed;
   if (front_car_dist >= CFG::kInfinite) {
     target_car_dist = CFG::kInfinite;
-    target_car_speed_mps = CFG::kPreferredSpeedMps;
+    target_car_speed = CFG::kPreferredSpeed;
   } else {
     target_car_dist = max(front_car_dist, CFG::kCarLength);
-    target_car_speed_mps = front_car_speed_mps;
+    target_car_speed = front_car_speed;
   }
   target_car_dist -= CFG::kCarLength + CFG::kBufferDist + LengthInMeters(out_x_vals, out_y_vals, ego_.x, ego_.y);
 
   double end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
-  double delta_speed_mps = target_car_speed_mps - end_speed;
-  double dist_to_start_breaking = (delta_speed_mps > 0.0) ?
+  double delta_speed = target_car_speed - end_speed;
+  double dist_to_start_breaking = (delta_speed > 0.0) ?
       target_car_dist
-    : target_car_dist - delta_speed_mps / CFG::kPreferredDecelMpss; // TODO: verify!
+    : target_car_dist - delta_speed / CFG::kPreferredDecel; // TODO: verify!
 
   double x_progress = 0.0;
-  double last_x_displacement = ref_speed_mps_ * CFG::kSimTimeStepS * x_ratio;
+  double last_x_displacement = ref_speed_ * CFG::kSimTimeStepS * x_ratio;
 
   // PID controller to smoothen the follow distance                 // TODO: this cannot work since instatiation, only P
   constexpr double pid_kp = 0.2;
@@ -273,13 +273,13 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   // create trajectory nodes
   for (size_t i = kept_prev_nodes_count_; i < CFG::kTrajectoryNodeCount; ++i) {
     end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
-    delta_speed_mps = target_car_speed_mps - end_speed;
-    dist_to_start_breaking = (delta_speed_mps > 0.0) ?
+    delta_speed = target_car_speed - end_speed;
+    dist_to_start_breaking = (delta_speed > 0.0) ?
         target_car_dist   // TODO: use current value instead of the old one
-      : target_car_dist - delta_speed_mps / CFG::kPreferredDecelMpss; // TODO: verify!
+      : target_car_dist - delta_speed / CFG::kPreferredDecel; // TODO: verify!
     if (log)
-      cout << i << " targetdist:" << target_car_dist <<  " speed:" << target_car_speed_mps
-        << " endspd:" << end_speed << " delta:" << delta_speed_mps << " brake in:"
+      cout << i << " targetdist:" << target_car_dist <<  " speed:" << target_car_speed
+        << " endspd:" << end_speed << " delta:" << delta_speed << " brake in:"
         << dist_to_start_breaking << "m" << endl;
     const double x_displacement = (dist_to_start_breaking < 0.0) ?
         max(last_x_displacement - x_disp_decel, 0.0)                 // decelerate
@@ -418,21 +418,21 @@ bool TrajectoryBuilder::AreSpeedsOk(vector<double> const& xs, vector<double> con
 }
 
 
-vector<double> TrajectoryBuilder::Acceleration(double cur_x, double cur_y, double cur_yaw, double cur_speed_mps,
+vector<double> TrajectoryBuilder::Acceleration(double cur_x, double cur_y, double cur_yaw, double cur_speed,
                                                double target_x, double target_y) {
   Eigen::Vector3d previous_speed;
-  previous_speed << cur_speed_mps * cos(cur_yaw), cur_speed_mps* sin(cur_yaw), 0.0;
+  previous_speed << cur_speed * cos(cur_yaw), cur_speed * sin(cur_yaw), 0.0;
   Eigen::Vector3d next_speed;
   next_speed << (target_x - cur_x) / CFG::kSimTimeStepS, (target_y - cur_y) / CFG::kSimTimeStepS, 0.0;
   const double next_speed_length = next_speed.norm();
   const Eigen::Vector3d cross_prod = previous_speed.cross(next_speed);
   const double cross_length = cross_prod.norm();
-  const double sin_angle = cross_length / cur_speed_mps / next_speed_length;
+  const double sin_angle = cross_length / cur_speed / next_speed_length;
   const double angle = asin(sin_angle);
   
   // tangential acc
   const double parallel_speed_length = next_speed_length * cos(angle);
-  const double tang_acc = (parallel_speed_length - cur_speed_mps) / CFG::kSimTimeStepS;
+  const double tang_acc = (parallel_speed_length - cur_speed) / CFG::kSimTimeStepS;
 
   // normal acc
   const double ortho_speed = next_speed_length * sin_angle;
@@ -482,5 +482,5 @@ void TrajectoryBuilder::SetReferencePose() {
     ref_y_ = ego_.y;
     ref_displacement = ego_.speed * CFG::kSimTimeStepS;
   }
-  ref_speed_mps_ = ref_displacement / CFG::kSimTimeStepS;
+  ref_speed_ = ref_displacement / CFG::kSimTimeStepS;
 }

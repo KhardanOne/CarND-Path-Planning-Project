@@ -62,10 +62,10 @@ int SensorFusion::GetCarInFront(double ego_s, int lane) {
 
 vector<double> SensorFusion::GetPredictedPos(int car_id, double time) {
   vector<double> const& raw = cars_[car_id].raw;
-  double x = raw[SF::X];
-  double y = raw[SF::Y];
-  double vx = raw[SF::VX];
-  double vy = raw[SF::VY];
+  const double x = raw[SF::X];
+  const double y = raw[SF::Y];
+  const double vx = raw[SF::VX];
+  const double vy = raw[SF::VY];
   vector<double> result;
   result.push_back(x + time * vx);
   result.push_back(y + time * vy);
@@ -79,10 +79,10 @@ vector<double> SensorFusion::GetPredictedPos(EgoCar const& ego, double time) {
   return result;
 }
 
-double SensorFusion::GetLaneSpeedMps(double from_s, int lane) {
-  int car_idx = GetCarInFront(from_s, lane);
+double SensorFusion::GetLaneSpeed(double from_s, int lane) {
+  const int car_idx = GetCarInFront(from_s, lane);
   if (car_idx == -1) {
-    return CFG::kPreferredSpeedMps;
+    return CFG::kPreferredSpeed;
   } else {
     vector<double> const& raw = cars_[car_idx].raw;
     return Speed(raw[SF::VX], raw[SF::VY]);
@@ -216,15 +216,15 @@ double SensorFusion::GetPredictedDistanceBeforeObstructed(
     double distance = GetDistanceForward(ego.s, front_s)
                       - CFG::kBufferDist - CFG::kCarLength;
     if (distance > 0.0) {
-      double front_speed_mps = GetLaneSpeedMps(ego.s, lane);
-      double delta_speed_mps = CFG::kPreferredSpeedMps - front_speed_mps;
+      double front_speed = GetLaneSpeed(ego.s, lane);
+      double delta_speed = CFG::kPreferredSpeed - front_speed;
       double time_to_catch;
-      if (delta_speed_mps > 0.01) {
-        time_to_catch = distance / delta_speed_mps;
+      if (delta_speed > 0.01) {
+        time_to_catch = distance / delta_speed;
       } else {
         time_to_catch = CFG::kInfinite;
       }
-      max_free_dist = CFG::kPreferredSpeedMps * time_to_catch;
+      max_free_dist = CFG::kPreferredSpeed* time_to_catch;
     } else {
       max_free_dist = 0.0;
     }
