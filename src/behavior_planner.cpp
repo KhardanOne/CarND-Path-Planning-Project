@@ -29,8 +29,9 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   static size_t nodes_added = 0;
   static size_t frame_count = 0;
   ++frame_count;
+  cout << "\nfr:" << frame_count << " ";
   TrajectoryBuilder trajectory_builder(map, ego, sim_prev);
-  SensorFusion sf(sensor_fusion, map.max_s_);
+  SensorFusion sf(sensor_fusion, map.max_s);
   int lane = ego.GetLane();
 
   switch (state_) {
@@ -75,7 +76,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     // cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);
     PrintStats(ego, map);
     cout << "ego lane:" << lane << " s:" << ego.s << " (" << ego.x << ","
-      << ego.y << "@" << ego.yaw << ") speed:" << ego.speed_mph << "mph";
+      << ego.y << "@" << ego.yaw_deg << ") speed:" << ego.speed_mph << "mph";
     sf.PrintLaneChangeInfo(ego, map);
   }
 
@@ -97,7 +98,7 @@ void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,
                                  Map const & map) {
   static size_t next_s_index = 0;
   static size_t s_size = map.waypoints_s.size();
-  double s = fmod(ego_loc.s, map.max_s_);
+  double s = fmod(ego_loc.s, map.max_s);
   if (s > map.waypoints_s[next_s_index]) {
     while (next_s_index < s_size && map.waypoints_s[next_s_index] < s) {
       ++next_s_index;
@@ -107,7 +108,7 @@ void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,
       << "] at " << map.waypoints_s[(next_s_index - 1) % s_size]
       << " passed, s=" << s << " d=" << ego_loc.d
       << " x=" << ego_loc.x << " y=" << ego_loc.y
-      << " yaw=" << ego_loc.yaw 
+      << " yaw_deg=" << ego_loc.yaw_deg 
       << " speed=" << ego_loc.speed_mph << "mph" << endl;
   }
 }

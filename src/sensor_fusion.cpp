@@ -19,7 +19,7 @@ SFCar::SFCar(vector<double> const& raw_values, int lane_num)
     lane(lane_num) {}
 
 SensorFusion::SensorFusion(vector<vector<double>> const& input, double lap_length)
-    : lanes_(3, vector<int>()), max_s_(lap_length) {
+    : lanes_(3, vector<int>()), max_s(lap_length) {
   int debug_wrong_input = 0;
   for (size_t c = 0; c < input.size(); ++c) {
     vector<double> const& raw = input[c];
@@ -74,8 +74,8 @@ vector<double> SensorFusion::GetPredictedPos(int car_id, double time) {
 
 vector<double> SensorFusion::GetPredictedPos(LocalizationData const& ego, double time) {
   vector<double> result;
-  result.push_back(ego.x + ego.speed_mph * CFG::kMphToMps * cos(DegToRad(ego.yaw)));
-  result.push_back(ego.y + ego.speed_mph * CFG::kMphToMps * sin(DegToRad(ego.yaw)));
+  result.push_back(ego.x + ego.speed_mph * CFG::kMphToMps * cos(DegToRad(ego.yaw_deg)));
+  result.push_back(ego.y + ego.speed_mph * CFG::kMphToMps * sin(DegToRad(ego.yaw_deg)));
   return result;
 }
 

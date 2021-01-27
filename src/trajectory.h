@@ -30,9 +30,15 @@ class TrajectoryBuilder {
                                 double cur_y,
                                 double cur_yaw,
                                 double cur_speed_mps);
+  static bool AreAccelerationsJerksOk(vector<double> const& xs,
+    vector<double> const& ys,
+    double cur_x,
+    double cur_y,
+    double cur_yaw,
+    double cur_speed_mps);
 
   tk::spline DefineSpline(int target_lane) const;
-  static size_t NumKeptNodes(PrevPathFromSim const& sim_prev);
+  size_t NumNodesToKeep() const;
   /*
    * Creates trajectory in form of two vectors, one for x and one for y coords.
    * @param out_x_vals OUTPUT vector of x coordinates
@@ -77,17 +83,11 @@ class TrajectoryBuilder {
    * Copies previous nodes from sim_prev_ to out_x_vals and out_y_vals.
    * Returns the number of nodes copied.
    */
-  size_t InitOutAndCopy(size_t nodes_to_copy_count,
-                        vector<double>& out_x_vals,
+  size_t InitOutAndCopy(vector<double>& out_x_vals,
                         vector<double>& out_y_vals) const;
+
   static bool AreSpeedsOk(vector<double> const& xs, vector<double> const& ys,
                           double cur_x, double cur_y);
-  static bool AreAccelerationsJerksOk(vector<double> const& xs,
-                                      vector<double> const& ys,
-                                      double cur_x,
-                                      double cur_y,
-                                      double cur_yaw,
-                                      double cur_speed_mps);
   /*
    * Calculates the acceleration between the current and the target point.
    * Returns the combined acceleration in meters per second^2.
@@ -102,20 +102,20 @@ class TrajectoryBuilder {
                                      double target_y);
   /* 
    * Transform a single x,y coordinate back to the map coord-sys.
-   * from the coordinate system defined by ref_x_, ref_y_ and ref_yaw_.
+   * from the coordinate system defined by ref_x_, ref_y_ and ref_yaw_rad_.
    */
   vector<double> TransformCoordFromRef(double x, double y) const;
 
   /*
    * Transform all coordinates from [x|y]_in_out_vals to the
-   * coordinate system defined by ref_x_, ref_y_ and ref_yaw_.
+   * coordinate system defined by ref_x_, ref_y_ and ref_yaw_rad_.
    */
   void TransformCoordsIntoRefSys(vector<double>& x_in_out_vals,
                                  vector<double>& y_in_out_vals) const;
   /*
-   * Finds the last point, where we should look forward.
-   * It finds among the simulator's previous nodes if exist.
-   * Otherwise it is the car's position.
+   * Finds the last point, where we should move forward from.
+   * It finds it among the simulator's previous nodes if exists,
+   * otherwise it is the car's pose.
    */
   void SetRef();
 
@@ -123,10 +123,12 @@ class TrajectoryBuilder {
   Map const& map_;
   LocalizationData const& ego_;
   PrevPathFromSim const& sim_prev_;
+  size_t kept_prev_count_;
 
+  // TODO: is ref the ego or the last? Make sure it is the same everywhwer!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   double ref_x_ = -1.0;  // the last node, continue from here
   double ref_y_ = -1.0;
-  double ref_yaw_ = -1.0;
+  double ref_yaw_rad_ = -1.0;
   double ref_displacement_ = 0.0;  // the distance between the last two nodes
 };
 

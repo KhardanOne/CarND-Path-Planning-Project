@@ -17,10 +17,31 @@ using std::endl;
 using std::vector;
 
 
+// TODO: add GetYawAtEnd(), then continue from that angle!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// TODO: try to generate 100% new trajectory each frame (instead of extending old one)
+
 TrajectoryBuilder::TrajectoryBuilder(Map const& map,
                                      LocalizationData const& ego,
                                      PrevPathFromSim const& sim_prev)
-  : map_(map), ego_(ego), sim_prev_(sim_prev) {
+    : map_(map), ego_(ego), sim_prev_(sim_prev), kept_prev_count_(NumNodesToKeep()){
+  
+  if (CFG::kDebug) {
+    static double dbg_last_dx = 0.0;
+    cout << "size:" << sim_prev.x_vals.size() << " ego x:" << ego.x << " y:" << ego.y << " mph:" << ego.speed_mph << " deg:" << ego.yaw_deg;
+    if (sim_prev.x_vals.size() > 0) {
+      cout<<" -> prev x[0]:"<<sim_prev.x_vals[0]<<" y[0]:"<<sim_prev.y_vals[0];
+      cout << " dx:" << sim_prev.x_vals[0] - ego.x << " ddx:"<<ego.x-sim_prev.x_vals[0]-dbg_last_dx;
+      cout<<" dy:"<<ego.y-sim_prev.y_vals[0];
+      dbg_last_dx = ego.x - sim_prev.x_vals[0];
+    }
+    cout << endl;
+
+    static double dbg_prev_yaw_deg = ego.yaw_deg;;
+    if (abs(ego.yaw_deg - dbg_prev_yaw_deg) > 5)
+      cout << "change in ego.yaw greater than 5 degrees: " << ego.yaw_deg - dbg_prev_yaw_deg << endl;
+    dbg_prev_yaw_deg = ego.yaw_deg;
+  } 
+
   SetRef();
   if (CFG::kDebug)
     VerifyIsMonotonic(sim_prev.x_vals, sim_prev.y_vals, ego.x, ego.y);
@@ -66,7 +87,7 @@ bool TrajectoryBuilder::VerifyIsMonotonic(vector<double> const& xs, vector<doubl
 
 
 bool TrajectoryBuilder::AreSpeedAccJerkOk(vector<double> const& xs,
-  vector<double> const& ys,
+                                          vector<double> const& ys,
   double cur_x,
   double cur_y,
   double cur_yaw,
@@ -87,22 +108,86 @@ bool TrajectoryBuilder::AreSpeedAccJerkOk(vector<double> const& xs,
 }
 
 
+bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
+                                                vector<double> const& ys,
+  double cur_x,
+  double cur_y,
+  double cur_yaw,
+  double cur_speed_mps) {
+  // empty is Ok
+  if (xs.size() == 0) {
+    cout << "AreAccelerationsJerksOk(): vector is empty and that is OK." << endl;
+    return true;
+  }
+
+  // measure the acceleration from ego car to the first (0th) element
+  vector<double> prev_acc = Acceleration(cur_x, cur_y, cur_yaw, cur_speed_mps, xs[0], ys[0]);
+  double& prev_acc_comb = prev_acc[0];
+  double& prev_acc_tang = prev_acc[1];
+  double& prev_acc_norm = prev_acc[2];
+  double prev_speed = cur_speed_mps;
+  double prev_yaw = DegToRad(cur_yaw);
+
+  if (prev_acc_comb > CFG::kAccHardLimitMpss) {
+    cout << "ERROR: AreAccelerationsJerksOk(): Acc from ego pose to the 0th node too high! AccT:"
+      << prev_acc_tang << " AccN:" << prev_acc_norm << " AccTotal:" << prev_acc_comb << endl;
+    return false;
+  }
+
+  // check accelerations between the nodes in input vectors
+  double jerk_limit_pow2 = CFG::kJerkHardLimitMpsss * CFG::kJerkHardLimitMpsss;
+  if (xs.size() > 1) {
+    for (size_t cur = 1; cur < xs.size() - 1; ++cur) {
+      const size_t prev = cur - 1;
+      vector<double> acc = Acceleration(xs[prev], ys[prev], prev_yaw, prev_speed, xs[cur], ys[cur]);
+      double& acc_comb = acc[0];
+      double& acc_tang = acc[1];
+      double& acc_norm = acc[2];
+
+      if (acc_comb > CFG::kAccHardLimitMpss) {
+        cout << "ERROR: AreAccelerationsJerksOk(): Acc to " << cur << "th node too high! AccT:"
+          << acc_tang << " AccN:" << acc_norm << " AccTotal:" << acc_comb << endl;
+        return false;
+      }
+
+      // check jerk
+      double jerk_tang = (acc_tang - prev_acc_tang); // / CFG::kSimTimeStepS;
+      double jerk_norm = (acc_norm - prev_acc_norm); // / CFG::kSimTimeStepS;
+      double jerk_comb_pow2 = jerk_tang * jerk_tang + jerk_norm * jerk_norm;
+      if (jerk_comb_pow2 > jerk_limit_pow2) {
+        cout << "ERROR: AreAccelerationsJerksOk(): Jert to " << cur << "th node too high! JertT:"
+          << jerk_tang << " JerkN:" << jerk_norm << " JerkTotal:" << sqrt(jerk_comb_pow2) << endl;
+        return false;
+      }
+
+      // prepare for next iteration
+      prev_acc_comb = acc_comb;
+      prev_acc_tang = acc_tang;
+      prev_acc_norm = acc_norm;
+      prev_speed = Distance(xs[cur], ys[cur], xs[prev], ys[prev]) / CFG::kSimTimeStepS;
+      prev_yaw = atan2(ys[cur] - ys[prev], xs[cur] - xs[prev]);
+    }
+  }
+  return true;  // Everything is OK or there are not enough nodes to classify them wrong
+}
+
+
 tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
   SplineDef spline_def;
   enum class DebugType { CONTINUE, START_NEW } dbg;
-  if (CanContinuePrevPath()) {
-    spline_def = SplineDef(sim_prev_);
+  if (kept_prev_count_ >= 3) {  // TODO: delete false!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  //if (false && kept_prev_count_ >= 3) {  // TODO: delete false!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    spline_def = SplineDef(sim_prev_, kept_prev_count_);
     dbg = DebugType::CONTINUE;
-  }
-  else {
+  } else {
     spline_def = SplineDef(ego_);
     dbg = DebugType::START_NEW;
   }
-  spline_def.Extend(target_lane, map_, ref_x_, ref_y_, ref_yaw_);
+  spline_def.Extend(target_lane, map_, ego_ /*ref_x_, ref_y_, ref_yaw_rad_*/);  // TODO: check
   if (spline_def.xs[5] < 0.0)
     cout << "ERROR: Extend returned a negative value" << endl;
-  vector<double> xValsBeforeTransform(spline_def.xs.begin(), spline_def.xs.end());
-  vector<double> yValsBeforeTransform(spline_def.ys.begin(), spline_def.ys.end());
+  vector<double> xDbgValsBeforeTransform(spline_def.xs.begin(), spline_def.xs.end());
+  vector<double> yDbgValsBeforeTransform(spline_def.ys.begin(), spline_def.ys.end());
   TransformCoordsIntoRefSys(spline_def.xs, spline_def.ys);
   if (CFG::kDebug && spline_def.xs[5] < 0.0)
     cout << "ERROR: Extend or TransferCoordsIntoRefSys returned a negative value" << endl;
@@ -112,10 +197,14 @@ tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
 }
 
 
-size_t TrajectoryBuilder::NumKeptNodes(PrevPathFromSim const& sim_prev) {
-  const size_t prev_node_count = sim_prev.x_vals.size();
-  const size_t nodes_to_keep = min(prev_node_count, (size_t)CFG::kTrajectoryMinNodeCount);
-  return nodes_to_keep;
+size_t TrajectoryBuilder::NumNodesToKeep() const {
+  if (CanContinuePrevPath()) {
+    const size_t prev_node_count = sim_prev_.x_vals.size();
+    const size_t nodes_to_keep = min(prev_node_count, (size_t)CFG::kTrajectoryMinNodeCount);
+    return nodes_to_keep;
+  } else {
+    return 0;
+  }
 }
 
 
@@ -126,8 +215,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
                                  double front_car_speed_mps) {
   bool log = false;
   size_t nodes_added = 0;
-  size_t kept_nodes_count = NumKeptNodes(sim_prev_);
-  nodes_added += InitOutAndCopy(kept_nodes_count, out_x_vals, out_y_vals);
+  nodes_added += InitOutAndCopy(out_x_vals, out_y_vals);  // TODO: THIS IS IT!!! It copies even when restarting
   tk::spline spl = DefineSpline(target_lane);
 
   // calculate how to break up the spline points
@@ -158,15 +246,15 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
       target_car_dist
     : target_car_dist - delta_speed_mps / CFG::kPreferredDecelMpss; // TODO: verify!
 
-  // PID controller to smoothen follow distance                   // TODO: this cannot work since instatiation, only P
-  constexpr double pid_kp = 0.1;                                  // TODO: reset it when?
-  constexpr double pid_kd = 5.0;
+  // PID controller to smoothen the follow distance                 // TODO: this cannot work since instatiation, only P
+  constexpr double pid_kp = 0.2;
+  constexpr double pid_kd = 15.0;
   static double pid_prev_p = 0.0;
   double& pid_p = dist_to_start_breaking;
   double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p), 1.0), -1.0));
-  if (true) {
+  if (true) {  // log
     double pid_dbg = max(min(-pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p), 1.0), -1.0);
-    cout << std::setw(14) << pid_dbg << std::setw(6) << int(dist_to_start_breaking) << endl;
+    cout << std::setw(14) << pid_dbg << std::setw(6) << long long (dist_to_start_breaking) << endl;
   }
   pid_prev_p = pid_p;
   double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
@@ -175,17 +263,17 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   //  << " dist to start braking: " << dist_to_start_breaking << endl;
 
   // TODO: abs prevents errors... by other errors?
-  //static PID follow_pid(0.1, 0.0, 0.5, -1.0, 1.0);
+  //static PID follow_pid(0.1, 0.0, 0.5, -1.0, 1.0);  // TODO: reset it when?
   //double pid_out = abs(follow_pid.Update(dist_to_start_breaking));
   //double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
   //double x_disp_decel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
 
   // create trajectory nodes
-  for (size_t i = kept_nodes_count; i < CFG::kTrajectoryNodeCount; ++i) {
+  for (size_t i = kept_prev_count_; i < CFG::kTrajectoryNodeCount; ++i) {
     end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed_mph * CFG::kMphToMps);
     delta_speed_mps = target_car_speed_mps - end_speed;
     dist_to_start_breaking = (delta_speed_mps > 0.0) ?
-        target_car_dist
+        target_car_dist   // TODO: use current value instead of the old one
       : target_car_dist - delta_speed_mps / CFG::kPreferredDecelMpss; // TODO: verify!
     if (log)
       cout << i << " targetdist:" << target_car_dist <<  " speed:" << target_car_speed_mps
@@ -202,6 +290,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
     const double x = x_progress + x_displacement;
     const double y = spl(x);
     x_progress = x;
+    target_car_dist -= x_displacement;  // good enough and fast approximation
     const vector<double> pos = TransformCoordFromRef(x, y);
     out_x_vals.push_back(pos[0]);
     out_y_vals.push_back(pos[1]);
@@ -209,7 +298,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   }
   if (CFG::kDebug) {
     VerifyIsMonotonic(out_x_vals, out_y_vals, ego_.x, ego_.y);
-    AreAccelerationsJerksOk(out_x_vals, out_y_vals, ego_.x, ego_.y, DegToRad(ego_.yaw), ego_.speed_mph * CFG::kMphToMps);
+    AreAccelerationsJerksOk(out_x_vals, out_y_vals, ego_.x, ego_.y, DegToRad(ego_.yaw_deg), ego_.speed_mph * CFG::kMphToMps);
   }
   return nodes_added;
 }
@@ -237,39 +326,60 @@ double TrajectoryBuilder::GetEndSpeed(vector<double> const& xs, vector<double> c
 
 
 bool TrajectoryBuilder::CanContinuePrevPath() const {
-  if (sim_prev_.x_vals.size() < 3)
+  if (sim_prev_.x_vals.size() < 3) {
+    cout << "PrevPath too short (" << sim_prev_.x_vals.size() << ") - START NEW PATH" << endl;
     return false;
+  }
+  return true; //////////////////////////////////////////////////// TODO: remove this
+
   size_t last = sim_prev_.x_vals.size() - 1;
-  constexpr double epsilon = 0.0001;
+  constexpr double kEpsilon = 0.000001;
   if (Distance(sim_prev_.x_vals[last], sim_prev_.y_vals[last],
-      sim_prev_.x_vals[last - 1], sim_prev_.y_vals[last - 1]) < epsilon)
+      sim_prev_.x_vals[last - 1], sim_prev_.y_vals[last - 1]) < kEpsilon) {
+    cout << "PrevPath last two nodes too close - START NEW PATH" << endl;
     return false;
+  }
+
   if (Distance(sim_prev_.x_vals[last - 1], sim_prev_.y_vals[last - 1],
-      sim_prev_.x_vals[last - 2], sim_prev_.y_vals[last - 2]) < epsilon)
+      sim_prev_.x_vals[last - 2], sim_prev_.y_vals[last - 2]) < kEpsilon) {
+    cout << "PrevPath penultimate and pre-penultimate nodes too close - START NEW PATH" << endl;
     return false;
+  }
+
   const vector<double> xs(sim_prev_.x_vals.end() - 3, sim_prev_.x_vals.end());
   const vector<double> ys(sim_prev_.y_vals.end() - 3, sim_prev_.y_vals.end());
   bool monotonic = VerifyIsMonotonic(xs, ys, ego_.x, ego_.y);
-  if (!monotonic)
-    cout << "WARNING: TrajectoryBuilder::CanContinuePrePath(): prev path is not monotonic!" << endl;
-  return monotonic;
+  if (!monotonic) {
+    cout << "WARNING: TrajectoryBuilder::CanContinuePrePath(): prev path is not monotonic! - START NEW PATH" << endl;
+    return false;
+  }
+
+  bool kinematics_ok = AreSpeedAccJerkOk(sim_prev_.x_vals, sim_prev_.y_vals, ego_.x, ego_.y, 
+                                         DegToRad(ego_.yaw_deg), ego_.speed_mph * CFG::kMphToMps);
+  if (!kinematics_ok) {
+    cout << "WARNING: Speed, acc or jerk is wrong - START NEW PATH" << endl;
+    return false;
+  }
+  
+  return true;
 }
 
 
-size_t TrajectoryBuilder::InitOutAndCopy(size_t nodes_to_copy_count,
-                                         vector<double>& out_x_vals,
+size_t TrajectoryBuilder::InitOutAndCopy(vector<double>& out_x_vals,
                                          vector<double>& out_y_vals) const {
   size_t nodes_added = 0;
   out_x_vals.clear();
   out_y_vals.clear();
   out_x_vals.reserve(CFG::kTrajectoryNodeCount);
   out_y_vals.reserve(CFG::kTrajectoryNodeCount);
-  if (sim_prev_.x_vals.size() >= 3) {
-    for (size_t i = 0; i < nodes_to_copy_count; ++i) {
+  if (kept_prev_count_ > 0 && sim_prev_.x_vals.size() >= 3) {
+    for (size_t i = 0; i < kept_prev_count_; ++i) {
       out_x_vals.push_back(sim_prev_.x_vals[i]);
       out_y_vals.push_back(sim_prev_.y_vals[i]);
       ++nodes_added;
     }
+  } else if (kept_prev_count_ > 0 && sim_prev_.x_vals.size() < 3) {
+    cout << "ERROR: TrajectoryBuilder::InitOutAndCopy(): less than 3 nodes to keep!" << endl;
   }
   return nodes_added;
 }
@@ -278,21 +388,26 @@ size_t TrajectoryBuilder::InitOutAndCopy(size_t nodes_to_copy_count,
 bool TrajectoryBuilder::AreSpeedsOk(vector<double> const& xs, vector<double> const& ys,
                                     double cur_x, double cur_y) {
   // empty is Ok
-  if (xs.size() == 0)
+  if (xs.size() == 0) {
+    cout << "AreSpeedsOk(): vector is empty and that is OK." << endl;
     return true;
+  }
   
   // measure the distance between the ego car and the first (0th) element
-  constexpr double displ_limit = CFG::kSpeedHardLimitDistPerFrame * CFG::kSpeedHardLimitDistPerFrame;
   double d = Distance(cur_x, cur_y, xs[0], ys[0]);
-  if (d > displ_limit)
+  if (d > CFG::kSpeedHardLimitDistPerFrame) {
+    cout << "AreSpeedsOk(): speed from ego car to 0th node too high: " << d << endl;
     return false;
+  }
   
   // check distances between the nodes in input vectors
   if (xs.size() > 1) {
     for (size_t cur = 1; cur < xs.size() - 1; ++cur) {
       const size_t prev = cur - 1;
       d = Distance(xs[cur], ys[cur], xs[prev], ys[prev]);
-      if (d > displ_limit) {
+      if (d > CFG::kSpeedHardLimitDistPerFrame) {
+        cout << "AreSpeedsOk(): speed to " << cur << "th node too high: "
+          << d / CFG::kSpeedHardLimitDistPerFrame << " (displacement:" << d << ")" << endl;
         return false;
       }
     }
@@ -301,63 +416,8 @@ bool TrajectoryBuilder::AreSpeedsOk(vector<double> const& xs, vector<double> con
 }
 
 
-bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
-  vector<double> const& ys,
-  double cur_x,
-  double cur_y,
-  double cur_yaw,
-  double cur_speed_mps) {
-  // empty is Ok
-  if (xs.size() == 0)
-    return true;
-
-  // measure the acceleration from ego car to the first (0th) element
-  vector<double> prev_acc = Acceleration(cur_x, cur_y, cur_yaw, cur_speed_mps, xs[0], ys[0]);
-  double& prev_acc_comb = prev_acc[0];
-  double& prev_acc_tang = prev_acc[1];
-  double& prev_acc_norm = prev_acc[2];
-  double prev_speed = cur_speed_mps;
-  double prev_yaw = DegToRad(cur_yaw);
-
-  if (prev_acc_comb > CFG::kMaxAccelMpss)
-    return false;
-
-  // check accelerations between the nodes in input vectors
-  double jerk_limit_pow2 = CFG::kJerkHardLimitMpsss * CFG::kJerkHardLimitMpsss;
-  if (xs.size() > 1) {
-    for (size_t cur = 1; cur < xs.size() - 1; ++cur) {
-      const size_t prev = cur - 1;
-      vector<double> acc = Acceleration(xs[prev], ys[prev], prev_yaw, prev_speed, xs[cur], ys[cur]);
-      double& acc_comb = acc[0];
-      double& acc_tang = acc[1];
-      double& acc_norm = acc[2];
-
-      if (acc_comb > CFG::kMaxAccelMpss) {
-        return false;
-      }
-
-      // check jerk
-      double jerk_tang = (acc_tang - prev_acc_tang) / CFG::kSimTimeStepS;
-      double jerk_norm = (acc_norm - prev_acc_norm) / CFG::kSimTimeStepS;
-      double jerk_comb_pow2 = jerk_tang * jerk_tang + jerk_norm * jerk_norm;
-      if (jerk_comb_pow2 > jerk_limit_pow2) {
-        return false;
-      }
-
-      // prepare for next iteration
-      prev_acc_comb = acc_comb;
-      prev_acc_tang = acc_tang;
-      prev_acc_norm = acc_norm;
-      prev_speed = Distance(xs[cur], ys[cur], xs[prev], ys[prev]) / CFG::kSimTimeStepS;
-      prev_yaw = atan2(ys[cur] - ys[prev], xs[cur] - xs[prev]);
-    }
-  }
-  return true;  // Everything is OK or there are not enough nodes to classify them wrong
-}
-
-
 vector<double> TrajectoryBuilder::Acceleration(double cur_x, double cur_y, double cur_yaw, double cur_speed_mps,
-                                       double target_x, double target_y) {
+                                               double target_x, double target_y) {
   Eigen::Vector3d previous_speed;
   previous_speed << cur_speed_mps * cos(cur_yaw), cur_speed_mps* sin(cur_yaw), 0.0;
   Eigen::Vector3d next_speed;
@@ -385,8 +445,8 @@ vector<double> TrajectoryBuilder::Acceleration(double cur_x, double cur_y, doubl
 vector<double> TrajectoryBuilder::TransformCoordFromRef(double x, double y) const {
   double delta_x = x;
   double delta_y = y;
-  x = delta_x * cos(ref_yaw_) - delta_y * sin(ref_yaw_);
-  y = delta_x * sin(ref_yaw_) + delta_y * cos(ref_yaw_);
+  x = delta_x * cos(ref_yaw_rad_) - delta_y * sin(ref_yaw_rad_);
+  y = delta_x * sin(ref_yaw_rad_) + delta_y * cos(ref_yaw_rad_);
   x += ref_x_;
   y += ref_y_;
   return { x, y };
@@ -398,27 +458,26 @@ void TrajectoryBuilder::TransformCoordsIntoRefSys(vector<double>& x_in_out_vals,
   for (size_t i = 0; i < x_in_out_vals.size(); ++i) {
     double delta_x = x_in_out_vals[i] - ref_x_;
     double delta_y = y_in_out_vals[i] - ref_y_;
-    x_in_out_vals[i] = delta_x * cos(-ref_yaw_) - delta_y * sin(-ref_yaw_);
-    y_in_out_vals[i] = delta_x * sin(-ref_yaw_) + delta_y * cos(-ref_yaw_);
+    x_in_out_vals[i] = delta_x * cos(-ref_yaw_rad_) - delta_y * sin(-ref_yaw_rad_);
+    y_in_out_vals[i] = delta_x * sin(-ref_yaw_rad_) + delta_y * cos(-ref_yaw_rad_);
   }
 }
 
 
 void TrajectoryBuilder::SetRef() {
-  if (CanContinuePrevPath()) {
-    const size_t last = NumKeptNodes(sim_prev_) - 1;
-    ref_yaw_ = atan2(sim_prev_.y_vals[last] - sim_prev_.y_vals[last-1],
-                     sim_prev_.x_vals[last] - sim_prev_.x_vals[last-1]);
+  if (kept_prev_count_ >= 3) {
+    const size_t last = kept_prev_count_ - 1;
+    ref_yaw_rad_ = atan2(sim_prev_.y_vals[last] - sim_prev_.y_vals[last-1],
+                         sim_prev_.x_vals[last] - sim_prev_.x_vals[last-1]);
     ref_x_ = sim_prev_.x_vals[last];
     ref_y_ = sim_prev_.y_vals[last];
     ref_displacement_ = Distance(sim_prev_.x_vals[last-1], sim_prev_.y_vals[last-1],
                                  sim_prev_.x_vals[last], sim_prev_.y_vals[last]);
   } else {
-    ref_yaw_ = DegToRad(ego_.yaw);
+    ref_yaw_rad_ = DegToRad(ego_.yaw_deg);
     ref_x_ = ego_.x;
     ref_y_ = ego_.y;
     ref_displacement_ = ego_.speed_mph * CFG::kMphToMps * CFG::kSimTimeStepS;
+    cout << "SetRef(): ref_displacement_ set to " << ref_displacement_ << endl;
   }
 }
-
-

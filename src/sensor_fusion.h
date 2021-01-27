@@ -9,6 +9,7 @@ using std::vector;
 
 struct SFCar {
   SFCar(vector<double> const& raw, int lane);
+
   vector<double> const& raw;
   int lane = -1;
 };
@@ -52,8 +53,8 @@ class SensorFusion {
 
   /*
    * Calculates the distance that can be driven before the ego car 
-   * would catch up the car in front with the given speed of the target car.
-   * The ego car speed is calculated with the preferred speed.
+   * would catch up the car in front.
+   * The ego car speed is calculated with its preferred speed.
    */
   double GetPredictedDistanceBeforeObstructed(
       int lane,
@@ -64,7 +65,7 @@ class SensorFusion {
 
   vector<SFCar> cars_;
   vector<vector<int>> lanes_;  // car ids for each lane
-  double max_s_;
+  double max_s;
 };
 
 #endif  // SENSOR_FUSION_H

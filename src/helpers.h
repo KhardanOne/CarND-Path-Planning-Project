@@ -57,11 +57,11 @@ double GetDistanceForward(double from_s, double to_s);
 // Calculate Distance between two points
 double Distance(double x1, double y1, double x2, double y2);
 
-// Calculate the speed from its two speed components
-double Speed(double vx, double vy);
-
 // Calculate the power of two of Distance between two points. Faster than Distance().
 double DistancePow2(double x1, double y1, double x2, double y2);
+
+// Calculate the speed from its two speed components
+double Speed(double vx, double vy);
 
 // Calculate closest waypoint to current x, y position
 int ClosestWaypoint(double x, double y, const Map & map);

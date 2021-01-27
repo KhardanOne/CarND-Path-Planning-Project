@@ -72,7 +72,7 @@ int main() {
           vector<double> next_y_vals;
 
           /**
-            * TODO: define a path made up of (x,y) points that the car will visit
+            * DONE: define a path made up of (x,y) points that the car will visit
             *   sequentially every .02 seconds
             */
           planner.GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, prev_path);
@@ -167,7 +167,7 @@ int main() {
           vector<double> next_y_vals;
 
           /**
-            * TODO: define a path made up of (x,y) points that the car will visit
+            * DONE: define a path made up of (x,y) points that the car will visit
             *   sequentially every .02 seconds
             */
           planner.GetTrajectory(next_x_vals, next_y_vals, map, ego_loc, sensor_fusion, prev_path);

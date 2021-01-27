@@ -155,7 +155,7 @@ vector<double> GetXY(double s, double d, Map const& map) {
   bool log = true;
 
   long long prev_wp = -1;
-  s = fmod(s, map.max_s_);
+  s = fmod(s, map.max_s);
   //if (log)
   //  cout << "GetXY: s=" << s;
 
@@ -168,16 +168,15 @@ vector<double> GetXY(double s, double d, Map const& map) {
   if (log && (wp2 < 2 || prev_wp >= 179))
     cout << " prew_wp=" << prev_wp << " wp2=" << wp2;
 
-  double heading = atan2((maps_y[wp2] - maps_y[prev_wp]),
-    (maps_x[wp2] - maps_x[prev_wp]));
+  double heading = atan2((maps_y[wp2] - maps_y[prev_wp]), (maps_x[wp2] - maps_x[prev_wp]));
   // the x,y,s along the segment
   double seg_s = (s - maps_s[prev_wp]);
   if (seg_s < 0.0) {
     if (log && (wp2 < 2 || prev_wp >= 179)) {
       cout << "info: GetXY() seg_s is negative, incrementing from " << seg_s
-        << " to " << seg_s + map.max_s_ << endl;
+        << " to " << seg_s + map.max_s << endl;
     }
-    seg_s += map.max_s_;
+    seg_s += map.max_s;
   }
 
   double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
@@ -191,5 +190,5 @@ vector<double> GetXY(double s, double d, Map const& map) {
   if (log && (wp2 < 2 || prev_wp >= 179))
     cout << " x=" << x << " y=" << y << endl;
 
-  return { x,y };
+  return { x, y };
 }

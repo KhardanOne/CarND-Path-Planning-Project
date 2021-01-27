@@ -14,7 +14,7 @@ struct Map {
   vector<double> waypoints_s;
   vector<double> waypoints_dx;
   vector<double> waypoints_dy;
-  double max_s_;
+  double max_s;
 };
 
 #endif //  MAP_H
