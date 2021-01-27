@@ -52,7 +52,7 @@ int main() {
             j[1]["s"],
             j[1]["d"],
             j[1]["yaw"],
-            j[1]["speed"],
+            j[1]["speed"] * CFG::kMphToMps,
           };
 
           PrevPathFromSim prev_path{
@@ -147,7 +147,7 @@ int main() {
             j[1]["s"],
             j[1]["d"],
             j[1]["yaw"],
-            j[1]["speed"],
+            j[1]["speed"] * CFG::kMphToMps,
           };
 
           PrevPathFromSim prev_path{

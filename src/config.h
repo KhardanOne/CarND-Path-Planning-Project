@@ -38,7 +38,6 @@ namespace CFG {
   constexpr double kTrajectoryMinLengthS = 0.4;
   constexpr double kPreferredSpeedMph = 49.45;
   constexpr double kPreferredSpeedMps = kPreferredSpeedMph * kMphToMps;
-  // constexpr double kMaxSpeedMph = 50.0;
   constexpr double kMaxAccelMpss = 9.0;
   constexpr double kPreferredAccelMpss = 4.0;
   constexpr double kPreferredDecelMpss = 3.0;

@@ -19,7 +19,6 @@ using std::vector;
 
 // TODO: add GetYawAtEnd(), then continue from that angle!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // TODO: try to generate 100% new trajectory each frame (instead of extending old one)
-
 TrajectoryBuilder::TrajectoryBuilder(Map const& map,
                                      LocalizationData const& ego,
                                      PrevPathFromSim const& sim_prev,
@@ -33,7 +32,8 @@ TrajectoryBuilder::TrajectoryBuilder(Map const& map,
 
   if (CFG::kDebug) {
     static double dbg_last_dx = 0.0;
-    cout << "size:" << sim_prev.x_vals.size() << " ego x:" << ego.x << " y:" << ego.y << " mph:" << ego.speed_mph << " deg:" << ego.yaw_deg;
+    cout << "size:" << sim_prev.x_vals.size() << " ego x:" << ego.x << " y:" << ego.y
+      << " mph:" << ego.speed / CFG::kMphToMps << " deg:" << ego.yaw_deg;
     if (sim_prev.x_vals.size() > 0) {
       cout<<" -> prev x[0]:"<<sim_prev.x_vals[0]<<" y[0]:"<<sim_prev.y_vals[0];
       cout << " dx:" << sim_prev.x_vals[0] - ego.x << " ddx:"<<ego.x-sim_prev.x_vals[0]-dbg_last_dx;
@@ -240,7 +240,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   }
   target_car_dist -= CFG::kCarLength + CFG::kBufferDist + LengthInMeters(out_x_vals, out_y_vals, ego_.x, ego_.y);
 
-  double end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed_mph * CFG::kMphToMps);
+  double end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
   double delta_speed_mps = target_car_speed_mps - end_speed;
   double dist_to_start_breaking = (delta_speed_mps > 0.0) ?
       target_car_dist
@@ -273,7 +273,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
 
   // create trajectory nodes
   for (size_t i = kept_prev_nodes_count_; i < CFG::kTrajectoryNodeCount; ++i) {
-    end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed_mph * CFG::kMphToMps);
+    end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
     delta_speed_mps = target_car_speed_mps - end_speed;
     dist_to_start_breaking = (delta_speed_mps > 0.0) ?
         target_car_dist   // TODO: use current value instead of the old one
@@ -301,7 +301,7 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   }
   if (CFG::kDebug) {
     VerifyIsMonotonic(out_x_vals, out_y_vals, ego_.x, ego_.y);
-    AreAccelerationsJerksOk(out_x_vals, out_y_vals, ego_.x, ego_.y, DegToRad(ego_.yaw_deg), ego_.speed_mph * CFG::kMphToMps);
+    AreAccelerationsJerksOk(out_x_vals, out_y_vals, ego_.x, ego_.y, DegToRad(ego_.yaw_deg), ego_.speed);
   }
   return nodes_added;
 }
@@ -358,7 +358,7 @@ bool TrajectoryBuilder::CanContinuePrevPath() const {
   }
 
   bool kinematics_ok = AreSpeedAccJerkOk(sim_prev_.x_vals, sim_prev_.y_vals, ego_.x, ego_.y, 
-                                         DegToRad(ego_.yaw_deg), ego_.speed_mph * CFG::kMphToMps);
+                                         DegToRad(ego_.yaw_deg), ego_.speed);
   if (!kinematics_ok) {
     cout << "WARNING: Speed, acc or jerk is wrong - START NEW PATH" << endl;
     return false;
@@ -481,7 +481,7 @@ void TrajectoryBuilder::SetReferencePose() {
     ref_yaw_rad_ = DegToRad(ego_.yaw_deg);
     ref_x_ = ego_.x;
     ref_y_ = ego_.y;
-    ref_displacement = ego_.speed_mph * CFG::kMphToMps * CFG::kSimTimeStepS;
+    ref_displacement = ego_.speed * CFG::kSimTimeStepS;
   }
   ref_speed_mps_ = ref_displacement / CFG::kSimTimeStepS;
 }

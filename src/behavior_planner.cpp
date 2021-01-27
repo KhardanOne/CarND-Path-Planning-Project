@@ -77,7 +77,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     // cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);
     PrintStats(ego, map);
     cout << "ego lane:" << lane << " s:" << ego.s << " (" << ego.x << ","
-      << ego.y << "@" << ego.yaw_deg << ") speed:" << ego.speed_mph << "mph";
+      << ego.y << "@" << ego.yaw_deg << ") speed:" << ego.speed / CFG::kMphToMps << "mph";
     sf.PrintLaneChangeInfo(ego, map);
   }
 
@@ -110,6 +110,6 @@ void BehaviorPlanner::PrintStats(LocalizationData const & ego_loc,
       << " passed, s=" << s << " d=" << ego_loc.d
       << " x=" << ego_loc.x << " y=" << ego_loc.y
       << " yaw_deg=" << ego_loc.yaw_deg 
-      << " speed=" << ego_loc.speed_mph << "mph" << endl;
+      << " speed=" << ego_loc.speed / CFG::kMphToMps << "mps" << endl;
   }
 }

@@ -74,8 +74,8 @@ vector<double> SensorFusion::GetPredictedPos(int car_id, double time) {
 
 vector<double> SensorFusion::GetPredictedPos(LocalizationData const& ego, double time) {
   vector<double> result;
-  result.push_back(ego.x + ego.speed_mph * CFG::kMphToMps * cos(DegToRad(ego.yaw_deg)));
-  result.push_back(ego.y + ego.speed_mph * CFG::kMphToMps * sin(DegToRad(ego.yaw_deg)));
+  result.push_back(ego.x + ego.speed * cos(DegToRad(ego.yaw_deg)));
+  result.push_back(ego.y + ego.speed * sin(DegToRad(ego.yaw_deg)));
   return result;
 }
 
@@ -90,8 +90,7 @@ double SensorFusion::GetLaneSpeedMps(double from_s, int lane) {
 }
 
 double SensorFusion::GetPredictedS(LocalizationData const& ego, double time) {
-  double speed_mps = ego.speed_mph * CFG::kMphToMps;
-  return ego.s + time * speed_mps;
+  return ego.s + time * ego.speed;
 }
 
 bool SensorFusion::IsLaneOpen(int lane, LocalizationData const& ego, Map const& map) {
