@@ -175,7 +175,7 @@ bool TrajectoryBuilder::AreAccelerationsJerksOk(vector<double> const& xs,
 }
 
 
-tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
+Spline TrajectoryBuilder::DefineSpline(int target_lane) const {
   SplineDef spline_def;
   enum class DebugType { CONTINUE, START_NEW } dbgSplineCreationMethod;
   if (kept_prev_nodes_count_ >= 3) {
@@ -193,9 +193,9 @@ tk::spline TrajectoryBuilder::DefineSpline(int target_lane) const {
   TransformCoordsIntoRefSys(spline_def.xs, spline_def.ys);
   if (CFG::kDebug && spline_def.xs[5] < 0.0)
     cout << "ERROR: Extend or TransferCoordsIntoRefSys returned a negative value" << endl;
-  tk::spline spl;
-  spl.set_points(spline_def.xs, spline_def.ys);
-  return spl;
+  Spline spline;
+  spline.set_points(spline_def.xs, spline_def.ys);
+  return spline;
 }
 
 
@@ -216,36 +216,33 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
                                  double front_car_dist,
                                  double front_car_speed) {
   bool log = false;
-  size_t nodes_added = InitOutAndCopy(out_x_vals, out_y_vals);
-  tk::spline spl = DefineSpline(target_lane);
-
-  // calculate how to break up the spline points
-  constexpr double target_x = 30.0;
-  const double target_y = spl(target_x);
-  const double target_dist = sqrt(target_x * target_x + target_y * target_y);
-  const double split_pieces = target_dist / CFG::kPreferredDistPerFrame;
-  const double preferred_delta_x = target_x / split_pieces;
-  const double x_ratio = target_x / target_dist;
+  InitOutput(out_x_vals, out_y_vals);
+  size_t nodes_added = CopyPrevious(out_x_vals, out_y_vals);
+  const double kept_length = LengthInMeters(ego_.x, ego_.y, out_x_vals, out_y_vals);
+  Spline spline = DefineSpline(target_lane);
   
-  // calculate target pose
-  double target_car_dist, target_car_speed;
-  if (front_car_dist >= CFG::kInfinite) {
-    target_car_dist = CFG::kInfinite;
-    target_car_speed = CFG::kPreferredSpeed;
-  } else {
-    target_car_dist = max(front_car_dist, CFG::kCarLength);
-    target_car_speed = front_car_speed;
+  // calculate how to break up the spline points
+  double preferred_delta_x = 0.0;  // increase the transfomed coord's x value by this to achieve goal speed
+  double x_ratio = 0.0;            // multiply all transformed x values with this to correct the angle's effect
+  {
+    constexpr double tmp_target_x = 30.0;
+    const double tmp_target_y = spline(tmp_target_x);
+    const double tmp_target_dist = sqrt(tmp_target_x * tmp_target_x + tmp_target_y * tmp_target_y);
+    const double split_pieces = tmp_target_dist / CFG::kPreferredDistPerFrame;
+    preferred_delta_x = tmp_target_x / split_pieces;
+    x_ratio = tmp_target_x / tmp_target_dist;
   }
-  target_car_dist -= CFG::kCarLength + CFG::kBufferDist + LengthInMeters(out_x_vals, out_y_vals, ego_.x, ego_.y);
+  
+  // calculate target speed and distance from ego car
+  double target_dist = max(front_car_dist, 0.0) - CFG::kCarLength - CFG::kBufferDist - kept_length;
+  const double target_speed = (front_car_dist >= CFG::kInfinite) ? CFG::kPreferredSpeed : front_car_speed;
 
-  double end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
-  double delta_speed = target_car_speed - end_speed;
+  // calculate the difference from prev trajectory end to the target
+  double traj_end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
+  double delta_speed = target_speed - traj_end_speed;
   double dist_to_start_breaking = (delta_speed > 0.0) ?
-      target_car_dist
-    : target_car_dist - delta_speed / CFG::kPreferredDecel; // TODO: verify!
-
-  double x_progress = 0.0;
-  double last_x_displacement = ref_speed_ * CFG::kSimTimeStepS * x_ratio;
+      target_dist
+    : target_dist - AccelDistance(-CFG::kPreferredDecel, ego_.speed, target_speed);
 
   // PID controller to smoothen the follow distance                 // TODO: this cannot work since instatiation, only P
   constexpr double pid_kp = 0.2;
@@ -269,16 +266,20 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   //double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
   //double x_disp_decel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
 
+  // loop init
+  double x_progress = 0.0;
+  double last_x_displacement = ref_speed_ * CFG::kSimTimeStepS * x_ratio;
+
   // create trajectory nodes
   for (size_t i = kept_prev_nodes_count_; i < CFG::kTrajectoryNodeCount; ++i) {
-    end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
-    delta_speed = target_car_speed - end_speed;
+    traj_end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
+    delta_speed = target_speed - traj_end_speed;
     dist_to_start_breaking = (delta_speed > 0.0) ?
-        target_car_dist   // TODO: use current value instead of the old one
-      : target_car_dist - delta_speed / CFG::kPreferredDecel; // TODO: verify!
+        target_dist   // TODO: use current value instead of the old one
+      : target_dist - AccelDistance(-CFG::kPreferredDecel, ego_.speed, target_speed);
     if (log)
-      cout << i << " targetdist:" << target_car_dist <<  " speed:" << target_car_speed
-        << " endspd:" << end_speed << " delta:" << delta_speed << " brake in:"
+      cout << i << " targetdist:" << target_dist <<  " speed:" << target_speed
+        << " endspd:" << traj_end_speed << " delta:" << delta_speed << " brake in:"
         << dist_to_start_breaking << "m" << endl;
     const double x_displacement = (dist_to_start_breaking < 0.0) ?
         max(last_x_displacement - x_disp_decel, 0.0)                 // decelerate
@@ -289,9 +290,9 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
 
     last_x_displacement = x_displacement;
     const double x = x_progress + x_displacement;
-    const double y = spl(x);
+    const double y = spline(x);
     x_progress = x;
-    target_car_dist -= x_displacement;  // good enough and fast approximation
+    target_dist -= x_displacement;  // good enough and fast approximation
     const vector<double> pos = TransformCoordFromRef(x, y);
     out_x_vals.push_back(pos[0]);
     out_y_vals.push_back(pos[1]);
@@ -305,8 +306,8 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
 }
 
 
-double TrajectoryBuilder::LengthInMeters(vector<double> const& xs, vector<double> const& ys,
-                                         double cur_x, double cur_y) {
+double TrajectoryBuilder::LengthInMeters(double cur_x, double cur_y,
+                                         vector<double> const& xs, vector<double> const& ys) {
   const size_t count = xs.size();
   if (count == 0)
     return 0.0;
@@ -365,14 +366,17 @@ bool TrajectoryBuilder::CanContinuePrevPath() const {
   return true;
 }
 
-
-size_t TrajectoryBuilder::InitOutAndCopy(vector<double>& out_x_vals,
-                                         vector<double>& out_y_vals) const {
-  size_t nodes_added = 0;
+void TrajectoryBuilder::InitOutput(vector<double>& out_x_vals,
+                                   vector<double>& out_y_vals) const {
   out_x_vals.clear();
   out_y_vals.clear();
   out_x_vals.reserve(CFG::kTrajectoryNodeCount);
   out_y_vals.reserve(CFG::kTrajectoryNodeCount);
+}
+
+size_t TrajectoryBuilder::CopyPrevious(vector<double>& out_x_vals,
+                                       vector<double>& out_y_vals) const {
+  size_t nodes_added = 0;
   if (kept_prev_nodes_count_ >= 3 && sim_prev_.x_vals.size() >= 3) {
     for (size_t i = 0; i < kept_prev_nodes_count_; ++i) {
       out_x_vals.push_back(sim_prev_.x_vals[i]);
@@ -380,7 +384,7 @@ size_t TrajectoryBuilder::InitOutAndCopy(vector<double>& out_x_vals,
       ++nodes_added;
     }
   } else if (kept_prev_nodes_count_ >= 3 && sim_prev_.x_vals.size() < 3) {
-    cout << "ERROR: TrajectoryBuilder::InitOutAndCopy(): less than 3 nodes to keep!" << endl;
+    cout << "ERROR: TrajectoryBuilder::CopyPrevious(): less than 3 nodes to keep!" << endl;
   }
   return nodes_added;
 }

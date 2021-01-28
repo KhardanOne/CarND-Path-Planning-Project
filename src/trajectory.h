@@ -8,6 +8,7 @@
 #include "helpers.h"
 #include <vector>
 
+using Spline = tk::spline;
 
 class TrajectoryBuilder {
  public:
@@ -41,7 +42,7 @@ class TrajectoryBuilder {
                                       double cur_y,
                                       double cur_yaw,
                                       double cur_speed);
-  tk::spline DefineSpline(int target_lane) const;
+  Spline DefineSpline(int target_lane) const;
   size_t NumNodesToKeep(bool force_restart) const;
   
   /*
@@ -63,9 +64,9 @@ class TrajectoryBuilder {
    * Return value is approximate but precise enough.
    * Calculates a linear distance to the last node, not node by node.
    */
-  static double LengthInMeters(std::vector<double> const& xs,
-                               std::vector<double> const& ys,
-                               double cur_x, double cur_y);
+  static double LengthInMeters(double cur_x, double cur_y,
+                               std::vector<double> const& xs,
+                               std::vector<double> const& ys);
   /*
    * Returns the speed at the end of the trajectory.
    * Calculated from the distance between the penultimate and last node.
@@ -88,11 +89,17 @@ class TrajectoryBuilder {
   bool CanContinuePrevPath() const;
   
   /*
-   * Copies previous nodes from sim_prev_ to out_x_vals and out_y_vals.
+   * Clears and reserves memory for the output vectors.
+   */
+  void InitOutput(std::vector<double>& out_x_vals,
+                  std::vector<double>& out_y_vals) const;
+  /*
+   * Copies a part of the previous nodes from sim_prev_
+   * to out_x_vals and out_y_vals.
    * Returns the number of nodes copied.
    */
-  size_t InitOutAndCopy(std::vector<double>& out_x_vals,
-                        std::vector<double>& out_y_vals) const;
+  size_t CopyPrevious(std::vector<double>& out_x_vals,
+                      std::vector<double>& out_y_vals) const;
 
   static bool AreSpeedsOk(std::vector<double> const& xs,
                           std::vector<double> const& ys,
@@ -100,7 +107,7 @@ class TrajectoryBuilder {
                           double cur_y);
   /*
    * Calculates the acceleration between the current and the target point.
-   * Returns the combined acceleration in meters per second^2.
+   *  Returns the combined acceleration in meters per second^2.
    * @param cur_yaw radians
    * @returns the combined acceleration, tangential acc, normal acc
    */

@@ -43,6 +43,7 @@ std::string HasData(std::string s);
 double DegToRad(double x);
 double RadToDeg(double x);
 
+// For converting back and forth between miles per hour and meters per second.
 double MphToMps(double speed);
 double MpsToMph(double speed);
 
@@ -58,6 +59,15 @@ double Distance(double x1, double y1, double x2, double y2);
 
 // Calculate the power of two of Distance between two points. Faster than Distance().
 double DistancePow2(double x1, double y1, double x2, double y2);
+
+/*
+ * Calculates the distance during acceleration or deceleration.
+ * @decel deceleration
+ * @param cur_speed current speed
+ * @param end_speed the speed to reserve
+ * @output distance covered during acceleration / deceleration
+  */
+double AccelDistance(double accel, double cur_speed, double end_speed);
 
 // Calculate the speed from its two speed components
 double Speed(double vx, double vy);

@@ -68,7 +68,13 @@ double DistancePow2(double x1, double y1, double x2, double y2) {
   return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
 }
 
-int ClosestWaypoint(double x, double y, const Map & map) {
+double AccelDistance(double accel, double cur_speed, double end_speed) {
+  // using 4th kinematic formula:
+  // v^2 = v0^2 + 2a*dx --> 2a*dx = v^2 - v0^2 --> dx = (v^2-v0^2)/2a
+  return (end_speed*end_speed-cur_speed*cur_speed) / 2.0 / accel;
+}
+
+int ClosestWaypoint(double x, double y, Map const& map) {
   const vector<double>& maps_x = map.waypoints_x;
   const vector<double>& maps_y = map.waypoints_y;
 
@@ -87,7 +93,7 @@ int ClosestWaypoint(double x, double y, const Map & map) {
   return closestWaypoint;
 }
 
-int NextWaypoint(double x, double y, double theta, const Map& map) {
+int NextWaypoint(double x, double y, double theta, Map const& map) {
   int closestWaypoint = ClosestWaypoint(x, y, map);
 
   const vector<double>& maps_x = map.waypoints_x;

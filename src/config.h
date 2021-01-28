@@ -28,7 +28,7 @@ namespace CFG {
   constexpr double kJerkHardLimit = 9.8;
 
   // tuning parameters
-  constexpr double kBufferDist = 8.0; //  Distance to follow the forward car from, car center to car center
+  constexpr double kBufferDist = 3.0; //  Distance to follow the forward car from, car center to car center
   constexpr double kCarLength = 5.0;
   constexpr double kLaneWindowHalfLength = 15.0;  // space required for lane change
   
