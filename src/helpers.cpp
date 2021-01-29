@@ -15,13 +15,13 @@ double Crop(double low_limit, double x, double high_limit) {
 }
 
 double LaneToD(int lane) {
-  return CFG::kHalfLaneWidth + lane * CFG::kLaneWidth;
+  return cfg::kHalfLaneWidth + lane * cfg::kLaneWidth;
 }
 
 int DToLane(double d) {
-  if (d < CFG::kLaneWidth) {
+  if (d < cfg::kLaneWidth) {
     return 0;
-  } else if (d > 2.0 * CFG::kLaneWidth) {
+  } else if (d > 2.0 * cfg::kLaneWidth) {
     return 2;
   } else {
     return 1;
@@ -29,13 +29,13 @@ int DToLane(double d) {
 }
 
 bool IsInLaneCenter(double d) {
-  double offset = fmod(d - CFG::kHalfLaneWidth, CFG::kLaneWidth);
-  return offset <= CFG::kLaneCenterOffsetLimit;
+  double offset = fmod(d - cfg::kHalfLaneWidth, cfg::kLaneWidth);
+  return offset <= cfg::kLaneCenterOffsetLimit;
 }
 
 bool IsInLaneCenter(double d, int lane) {
   double center = LaneToD(lane);
-  return abs(center - d) < CFG::kLaneCenterOffsetLimit;
+  return abs(center - d) < cfg::kLaneCenterOffsetLimit;
 }
 
 string HasData(string s) {
@@ -59,7 +59,7 @@ double MpsToMph(double x) { return x / 0.44704; }
 double GetDistanceForward(double from_s, double to_s) {
   double distance = to_s - from_s;
   if (distance < 0.0)
-    distance += CFG::kLapLength;  // handle lap restarts
+    distance += cfg::kLapLength;  // handle lap restarts
   return distance;
 }
 

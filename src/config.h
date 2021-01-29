@@ -6,6 +6,7 @@
 #include <float.h>
 
 /*
+ * Config
  * Postfixes:
  * s - seconds
  * mph - miles per hour
@@ -13,57 +14,47 @@
  * mpss - meters per second^2
  * mpsss - meters per second^3
  */
-namespace CFG {
+namespace cfg {
   enum Verbose {kOff, kImportant, kAll};
   constexpr int    kVerbose = kAll;
   constexpr bool   kDebug = false;
 
-  // basic constants used in calculations in this file
+  // basic hard parameters
   constexpr double kMphToMps = 0.44704;
   constexpr double kSimTimeStepS = 0.02;
   constexpr double kLapLength = 6945.554;
   constexpr double kInfinite = DBL_MAX;
-  constexpr double kSpeedHardLimitMph = 49.8;
-  constexpr double kAccHardLimit = 9.8;
-  constexpr double kJerkHardLimit = 9.8;
-
-  // tuning parameters
-  constexpr double kBufferDist = 7.0; //  Distance to follow the forward car from, car center to car center
-  constexpr double kCarLength = 8.0;
-  constexpr double kLaneWindowHalfLength = 15.0;  // space required for lane change
-  
-  // the window must be open for this long, will be sampled every second
-  constexpr double kLaneChangeDuration = 3.0;
-  constexpr double kTrajectoryLengthS = 2.0;
-  constexpr double kTrajectoryMinLengthS = 0.1;
-  constexpr double kPreferredSpeedMph = 49.45;
-  constexpr double kPreferredSpeed = kPreferredSpeedMph * kMphToMps;
-  constexpr double kMaxAccel = 9.0;
-  constexpr double kPreferredAccel = 3.0;
-  constexpr double kPreferredDecel = 6.0;
-  constexpr double kMaxDecel = 9.0;
-  constexpr double kKeepLaneAboveFreeDist = 200.0;
-  // constexpr double kMaxJerk = 9.0;
-  
-  // car might be changing lanes if it is further from lane center
-  constexpr double kLaneCenterOffsetLimit = 1.0;
-
+  constexpr double kMaxSpeedMph = 49.8;
+  constexpr double kMaxAccel = 9.8;
+  constexpr double kMaxDecel = 9.8;
+  constexpr double kMaxJerk = 9.8;
+  constexpr double kCarLength = 5.0;
   constexpr int    kLaneCount = 3;
   constexpr double kLaneWidth = 4.0;
 
-  // calculated values
+  // basic tuning parameters
+  constexpr double kTrajectoryLengthSec = 2.0;      // determines the number of nodes in trajectory
+  constexpr double kTrajectoryMinLengthSec = 0.1;   // determines the amount of nodes kept from previous frame
+  constexpr double kPreferredSpeedMph = 49.45;
+  constexpr double kPreferredAccel = 3.0;
+  constexpr double kPreferredDecel = 6.0;
+  constexpr double kKeepLaneAboveFreeDist = 200.0;
+  constexpr double kBufferDist = 10.0;              // Distance to follow the forward car from, car center to car center
+  constexpr double kLaneWindowHalfLength = 15.0;    // space required for lane change
+  constexpr double kLaneChangeDuration = 3.0;       // the window must be open for this long, will be sampled every second
+  constexpr double kLaneCenterOffsetLimit = 1.0;    // car is considered "inside" lane if it is closer than this:
 
-  // constexpr double kMaxSpeed = kMaxSpeedMph * kMphToMps;
-  constexpr double kSpeedHardLimit = kSpeedHardLimitMph * kMphToMps;
-  constexpr double kSpeedHardLimitDistPerFrame = kSpeedHardLimit * kSimTimeStepS;
+  // calculated values
+  constexpr double kMaxSpeed = kMaxSpeedMph * kMphToMps;
+  constexpr double kPreferredSpeed = kPreferredSpeedMph * kMphToMps;
+  constexpr double kMaxSpeedDistPerFrame = kMaxSpeed * kSimTimeStepS;
   constexpr double kPreferredDistPerFrame = kPreferredSpeed * kSimTimeStepS;
   constexpr double kPreferredDistPerFrameIncrement = kPreferredAccel * kSimTimeStepS * kSimTimeStepS;
   constexpr double kPreferredDistPerFrameDecrement = kPreferredDecel * kSimTimeStepS * kSimTimeStepS;
   constexpr double kMaxDistPerFrameDecrement = kMaxDecel * kSimTimeStepS * kSimTimeStepS; // TODO: !!! check these squared values
-  constexpr int    kTrajectoryNodeCount = int(kTrajectoryLengthS / kSimTimeStepS);
-  constexpr int    kTrajectoryMinNodeCount = int(kTrajectoryMinLengthS / kSimTimeStepS);
-  constexpr double kHalfLaneWidth = kLaneWidth / 2.0;
-  
+  constexpr int    kTrajectoryNodeCount = int(kTrajectoryLengthSec / kSimTimeStepS);
+  constexpr int    kTrajectoryMinNodeCount = int(kTrajectoryMinLengthSec / kSimTimeStepS);
+  constexpr double kHalfLaneWidth = kLaneWidth / 2.0;  
 };
 
 #endif  // CONFIG_H

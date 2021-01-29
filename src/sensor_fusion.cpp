@@ -45,7 +45,7 @@ SensorFusion::SensorFusion(vector<vector<double>> const& input, double lap_lengt
  * s=0       [ts=100]        [es=200]       s=max   --> dist = ts-es+max
  */
 int SensorFusion::GetCarInFront(double ego_s, int lane) {
-  double min_dist = CFG::kInfinite;
+  double min_dist = cfg::kInfinite;
   int result = -1;
   vector<int>& lane_cars = lanes_[lane];
   for (size_t i_in_lane = 0; i_in_lane < lane_cars.size(); ++i_in_lane) {
@@ -82,7 +82,7 @@ vector<double> SensorFusion::GetPredictedPos(EgoCar const& ego, double time) {
 double SensorFusion::GetLaneSpeed(double from_s, int lane) {
   const int car_idx = GetCarInFront(from_s, lane);
   if (car_idx == -1) {
-    return CFG::kPreferredSpeed;
+    return cfg::kPreferredSpeed;
   } else {
     vector<double> const& raw = cars_[car_idx].raw;
     return Speed(raw[SF::VX], raw[SF::VY]);
@@ -96,8 +96,8 @@ double SensorFusion::GetPredictedS(EgoCar const& ego, double time) {
 bool SensorFusion::IsLaneOpen(int lane, EgoCar const& ego, Map const& map) {
   vector<int> const& lane_cars = lanes_[lane];
   size_t cars_count = lane_cars.size();
-  double dist_limit_pow2 = CFG::kLaneWindowHalfLength * CFG::kLaneWindowHalfLength;
-  for (double time = 0.0; time <= CFG::kLaneChangeDuration; time += 1.0) {
+  double dist_limit_pow2 = cfg::kLaneWindowHalfLength * cfg::kLaneWindowHalfLength;
+  for (double time = 0.0; time <= cfg::kLaneChangeDuration; time += 1.0) {
     vector<double> ego_pred_pos = GetPredictedPos(ego, time);
     for (int car_idx_lane = 0; car_idx_lane < cars_count; ++car_idx_lane) {
       int car_idx_sf = lane_cars[car_idx_lane];
@@ -135,7 +135,7 @@ int SensorFusion::GetTargetLane(EgoCar const& ego, Map const& map) {
     
   
   // consider center lane first
-  if (max_free_dist > CFG::kKeepLaneAboveFreeDist
+  if (max_free_dist > cfg::kKeepLaneAboveFreeDist
       && (current == center || IsLaneOpen(center, ego, map))) {
     if (log)
       cout << "<<" << endl;
@@ -149,7 +149,7 @@ int SensorFusion::GetTargetLane(EgoCar const& ego, Map const& map) {
   dists[1] = center_dist;
   dists[ego.GetLane()] = cur_dist;
   if (current != center) {
-    if (cur_dist > CFG::kKeepLaneAboveFreeDist) {
+    if (cur_dist > cfg::kKeepLaneAboveFreeDist) {
       if (log)
         cout << "   cur:" << cur_dist << "<< enough" << endl;
       return current;
@@ -169,7 +169,7 @@ int SensorFusion::GetTargetLane(EgoCar const& ego, Map const& map) {
       }
     }
   } else {  // current == center but not good enough, check side lanes
-    for (int lane = max(current - 1, 0); lane <= min(current + 1, CFG::kLaneCount - 1); lane += 2) {
+    for (int lane = max(current - 1, 0); lane <= min(current + 1, cfg::kLaneCount - 1); lane += 2) {
       if (dists[lane] > -1)  // already has value
         continue;
       double free_dist = GetPredictedDistanceBeforeObstructed(lane, ego, map);
@@ -210,21 +210,21 @@ double SensorFusion::GetPredictedDistanceBeforeObstructed(
   double max_free_dist;
   int front_id = GetCarInFront(ego.s, lane);
   if (front_id == -1) {
-    max_free_dist = CFG::kInfinite;
+    max_free_dist = cfg::kInfinite;
   } else {
     double front_s = cars_[front_id].raw[SF::S];
     double distance = GetDistanceForward(ego.s, front_s)
-                      - CFG::kBufferDist - CFG::kCarLength;
+                      - cfg::kBufferDist - cfg::kCarLength;
     if (distance > 0.0) {
       double front_speed = GetLaneSpeed(ego.s, lane);
-      double delta_speed = CFG::kPreferredSpeed - front_speed;
+      double delta_speed = cfg::kPreferredSpeed - front_speed;
       double time_to_catch;
       if (delta_speed > 0.01) {
         time_to_catch = distance / delta_speed;
       } else {
-        time_to_catch = CFG::kInfinite;
+        time_to_catch = cfg::kInfinite;
       }
-      max_free_dist = CFG::kPreferredSpeed* time_to_catch;
+      max_free_dist = cfg::kPreferredSpeed* time_to_catch;
     } else {
       max_free_dist = 0.0;
     }
@@ -256,7 +256,7 @@ void SensorFusion::PrintLaneChangeInfo(EgoCar const& ego, Map const& map) {
   int lane_choise = GetTargetLane(ego, map);
 
   cout << std::setw(5) << int(ego.s) << " "
-    << std::setw(7) << fmod(ego.d, CFG::kLaneWidth) - CFG::kHalfLaneWidth
+    << std::setw(7) << fmod(ego.d, cfg::kLaneWidth) - cfg::kHalfLaneWidth
     << std::setw(7);
 
   for (int i = 0; i < 3; ++i) {

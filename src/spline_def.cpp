@@ -16,7 +16,7 @@ using std::vector;
 
 
 SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
-  if (CFG::kVerbose >= CFG::kImportant)
+  if (cfg::kVerbose >= cfg::kImportant)
     cout << "nodes_to_keep:" << nodes_to_keep;
   xs.push_back(sim_prev.x_vals[nodes_to_keep - 3]);
   ys.push_back(sim_prev.y_vals[nodes_to_keep - 3]);
@@ -27,7 +27,7 @@ SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
 }
 
 SplineDef::SplineDef(double x, double y, double yaw) {
-  if (CFG::kVerbose >= CFG::kImportant)
+  if (cfg::kVerbose >= cfg::kImportant)
     cout << "start with 0 nodes";
   double delta_x = kSmallDist * cos(yaw);
   double delta_y = kSmallDist * sin(yaw);
@@ -52,7 +52,7 @@ void SplineDef::Extend(int target_lane, Map const& map, EgoCar const& ego) {
   ys.push_back(far_wp0[1]);
   ys.push_back(far_wp1[1]);
   ys.push_back(far_wp2[1]);
-  if (CFG::kDebug) {
+  if (cfg::kDebug) {
     //TrajectoryBuilder::IsMonotonic(xs, ys, ref_x, ref_y);
   } 
 }

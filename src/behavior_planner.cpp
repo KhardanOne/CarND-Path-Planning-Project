@@ -96,8 +96,8 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   double target_dist, target_speed;
   int front_car = sf.GetCarInFront(ego.s, target_lane_);
   if (front_car == -1) {
-    target_dist = CFG::kInfinite;
-    target_speed = CFG::kInfinite;
+    target_dist = cfg::kInfinite;
+    target_speed = cfg::kInfinite;
   } else {
     vector<double> const& raw = sf.cars_[front_car].raw;
     target_dist = GetDistanceForward(ego.s, raw[SF::S]);

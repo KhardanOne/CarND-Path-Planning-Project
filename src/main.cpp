@@ -25,7 +25,7 @@ int main() {
   uWS::Hub h;
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
-  Map map("../data/highway_map.csv", CFG::kLapLength);
+  Map map("../data/highway_map.csv", cfg::kLapLength);
   BehaviorPlanner planner;
 
   h.onMessage([&map, &planner]
@@ -118,7 +118,7 @@ int main() {
 int main() {
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
-  Map map("../data/highway_map.csv", CFG::kLapLength);
+  Map map("../data/highway_map.csv", cfg::kLapLength);
   BehaviorPlanner planner;
 
   uWS::App::WebSocketBehavior b;
