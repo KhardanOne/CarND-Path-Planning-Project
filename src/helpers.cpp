@@ -3,10 +3,16 @@
 #include "map.h"
 #include <iostream>
 
+using std::min;
+using std::max;
 using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
+
+double Crop(double low_limit, double x, double high_limit) {
+  return min(high_limit, max(low_limit, x));
+}
 
 double LaneToD(int lane) {
   return CFG::kHalfLaneWidth + lane * CFG::kLaneWidth;
@@ -47,12 +53,13 @@ string HasData(string s) {
 double DegToRad(double x) { return x * M_PI / 180; }
 double RadToDeg(double x) { return x * 180 / M_PI; }
 
-double MphToMps(double speed) { return speed * 0.44704; }
-double MpsToMph(double speed) { return speed / 0.44704; }
+double MphToMps(double x) { return x * 0.44704; }
+double MpsToMph(double x) { return x / 0.44704; }
 
 double GetDistanceForward(double from_s, double to_s) {
   double distance = to_s - from_s;
-  distance = (distance >= 0.0) ? distance : distance + CFG::kLapLength;  // handle lap restarts
+  if (distance < 0.0)
+    distance += CFG::kLapLength;  // handle lap restarts
   return distance;
 }
 

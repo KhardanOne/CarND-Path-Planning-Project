@@ -28,20 +28,20 @@ namespace CFG {
   constexpr double kJerkHardLimit = 9.8;
 
   // tuning parameters
-  constexpr double kBufferDist = 3.0; //  Distance to follow the forward car from, car center to car center
+  constexpr double kBufferDist = 8.0; //  Distance to follow the forward car from, car center to car center
   constexpr double kCarLength = 5.0;
   constexpr double kLaneWindowHalfLength = 15.0;  // space required for lane change
   
   // the window must be open for this long, will be sampled every second
   constexpr double kLaneChangeDuration = 3.0;
   constexpr double kTrajectoryLengthS = 2.0;
-  constexpr double kTrajectoryMinLengthS = 0.4;
+  constexpr double kTrajectoryMinLengthS = 0.1;
   constexpr double kPreferredSpeedMph = 49.45;
   constexpr double kPreferredSpeed = kPreferredSpeedMph * kMphToMps;
   constexpr double kMaxAccel = 9.0;
-  constexpr double kPreferredAccel = 4.0;
-  constexpr double kPreferredDecel = 3.0;
-  constexpr double kMaxDecel = 5.0;
+  constexpr double kPreferredAccel = 3.0;
+  constexpr double kPreferredDecel = 6.0;
+  constexpr double kMaxDecel = 9.0;
   constexpr double kKeepLaneAboveFreeDist = 200.0;
   // constexpr double kMaxJerk = 9.0;
   

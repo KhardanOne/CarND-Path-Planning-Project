@@ -18,6 +18,9 @@ struct PrevPathFromSim {
   double end_d;
 };
 
+// Crops the value of x between low and high limit.
+double Crop(double low_limit, double x, double high_limit);
+
 // calculates center d value from lane number
 double LaneToD(int lane);
 
