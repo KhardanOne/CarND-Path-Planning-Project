@@ -8,6 +8,10 @@
 #include <iostream>
 #include <iomanip>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 using std::min;
 using std::max;
 using std::cout;
@@ -72,6 +76,13 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
         cout << "INVALID     ";
     }
   }
+
+#ifdef _WIN32
+  // handle keys for testing: NUMPAD 1,2,3 for lanes 0, 1, 2
+  if (GetKeyState(0x61)) { target_lane_ = 0; cout << "force lane: 0" << endl; }
+  if (GetKeyState(0x62)) { target_lane_ = 1; cout << "force lane: 1" << endl; }
+  if (GetKeyState(0x63)) { target_lane_ = 2; cout << "force lane: 2" << endl; }
+#endif
 
   if (log) {
     // cout << /*"\n" << */ std::fixed << std::showpoint << std::setprecision(1);

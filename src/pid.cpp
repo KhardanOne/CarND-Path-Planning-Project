@@ -26,6 +26,17 @@ double PD::Get() const {
 }
 
 
+PDPow::PDPow(double k_p, double k_d, double k_e, double min_out, double max_out)
+  : PD(k_p, k_d, min_out, max_out), exp_(k_e) {}
+
+double PDPow::Get() const {
+  const double sign = double(p_error_ >= 0) - double(p_error_ < 0);
+  double result = max(min_out_, min(max_out_,
+    -coeff_p_ * sign * pow(abs(p_error_), exp_) - coeff_d_ * d_error_));
+  return result;
+}
+
+
 PID::PID(double k_p, double k_i, double k_d, double min_out, double max_out)
   : coeff_p_(k_p), coeff_i_(k_i), coeff_d_(k_d), min_out_(min_out),
     max_out_(max_out), p_error_(0.0), i_error_(0.0), d_error_(0.0) {}

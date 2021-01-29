@@ -220,23 +220,15 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   double target_dist = max(front_car_dist, 0.0) - CFG::kCarLength - CFG::kBufferDist - kept_length;
   const double target_speed = (front_car_dist >= CFG::kInfinite) ? CFG::kPreferredSpeed : front_car_speed;
 
-  static PD pd(0.1, 3.0);
+  static PDPow pd(0.1, 3.0, 2.0);
+  //static PD pd(0.1, 3.0);
   const double pd_out = pd.Update(-target_dist);
-
-
-  // PID controller to smoothen the follow distance                 // TODO: this cannot work since instatiation, only P
-  //constexpr double pid_kp = 0.1;
-  //constexpr double pid_kd = 3.0;
-  //static double pid_prev_p = 0.0;
-  //double pid_p = -target_dist;
-  //double pid_out = -pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p);
   double throttle = Crop(0.0, pd_out, 1.0);
   double brake = Crop(0.0, -pd_out, 1.0);
   if (true) {  // log
-    cout << "pid:" << std::setw(14) << pd_out << " thr:" << std::setw(14) << throttle
+    cout << " pid:" << std::setw(14) << pd_out << " thr:" << std::setw(14) << throttle
       <<" br:" << std::setw(14) << brake << std::setw(6) << long long (target_dist) << endl;
   }
-  //pid_prev_p = pid_p;
   double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * throttle;  // triangle ratio omitted because close to 1.0
   double x_disp_decel = -CFG::kMaxDistPerFrameDecrement * brake;          // triangle ratio omitted because close to 1.0
 
