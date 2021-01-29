@@ -15,9 +15,6 @@ using std::cout;
 using std::endl;
 using std::vector;
 
-
-// TODO: add GetYawAtEnd(), then continue from that angle!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// TODO: try to generate 100% new trajectory each frame (instead of extending old one)
 TrajectoryBuilder::TrajectoryBuilder(Map const& map,
                                      EgoCar const& ego,
                                      PrevPathFromSim const& sim_prev,
@@ -25,7 +22,7 @@ TrajectoryBuilder::TrajectoryBuilder(Map const& map,
   : map_(map),
     ego_(ego),
     sim_prev_(sim_prev),
-    kept_prev_nodes_count_(NumNodesToKeep(force_restart)){
+    kept_prev_nodes_count_(NumNodesToKeep(force_restart)) {
 
   SetReferencePose();
 
@@ -99,8 +96,7 @@ bool TrajectoryBuilder::AreSpeedAccJerkOk(vector<double> const& xs,
   bool acc_jerk_ok = AreAccelerationsJerksOk(xs, ys, cur_x, cur_y, cur_yaw, cur_speed);
   if (speeds_ok && acc_jerk_ok) {
     return true;
-  }
-  else {
+  } else {
     cout << "ERROR: TrajectoryBuilder::AreSpeedAccJerkOk(): ";
     if (!speeds_ok)
       cout << "some of the speeds are wrong!" << endl;
@@ -219,69 +215,30 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   InitOutput(out_x_vals, out_y_vals);
   size_t nodes_added = CopyPrevious(out_x_vals, out_y_vals);
   const double kept_length = LengthInMeters(ego_.x, ego_.y, out_x_vals, out_y_vals);
-  Spline spline = DefineSpline(target_lane);
-  
-  // calculate how to break up the spline points
-  double preferred_delta_x = 0.0;  // increase the transfomed coord's x value by this to achieve goal speed
-  double x_ratio = 0.0;            // multiply all transformed x values with this to correct the angle's effect
-  {
-    constexpr double tmp_target_x = 30.0;
-    const double tmp_target_y = spline(tmp_target_x);
-    const double tmp_target_dist = sqrt(tmp_target_x * tmp_target_x + tmp_target_y * tmp_target_y);
-    const double split_pieces = tmp_target_dist / CFG::kPreferredDistPerFrame;
-    preferred_delta_x = tmp_target_x / split_pieces;
-    x_ratio = tmp_target_x / tmp_target_dist;
-  }
-  
-  // calculate target speed and distance from ego car
+  const Spline spline = DefineSpline(target_lane);
+
   double target_dist = max(front_car_dist, 0.0) - CFG::kCarLength - CFG::kBufferDist - kept_length;
   const double target_speed = (front_car_dist >= CFG::kInfinite) ? CFG::kPreferredSpeed : front_car_speed;
 
-  // calculate the difference from prev trajectory end to the target
-  double traj_end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
-  double delta_speed = target_speed - traj_end_speed;
-  //double dist_to_start_braking = (delta_speed > 0.0) ?
-  //    target_dist
-  //  : target_dist - AccelDistance(-CFG::kPreferredDecel, ego_.speed, target_speed);
-  double dist_to_start_braking = target_dist;
+  static PD pd(0.1, 3.0);
+  const double pd_out = pd.Update(-target_dist);
+
 
   // PID controller to smoothen the follow distance                 // TODO: this cannot work since instatiation, only P
-  constexpr double pid_kp = 0.1;
-  constexpr double pid_kd = 3.0;
-  static double pid_prev_p = 0.0;
-  double pid_p = -dist_to_start_braking; // -20m (20m ahead of ego)
-  //               -0.1 * -20 - 0.4 * (-20 - (-25))
-  //                   +2         -0.4 *   5 = 0
-  double pid_out = -pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p);
-  double throttle = Crop(0.0, pid_out, 1.0);
-  double brake = Crop(0.0, -pid_out, 1.0);
-  if (true) {  // log
-    cout << std::setw(14) << "pid:" << pid_out << " thr:" << throttle << " br:" << brake
-      << std::setw(6) << long long (dist_to_start_braking) << endl;
-  }
-  pid_prev_p = pid_p;
-  double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * throttle;
-  double x_disp_decel = -CFG::kMaxDistPerFrameDecrement * x_ratio * brake;
   //constexpr double pid_kp = 0.1;
-  //constexpr double pid_kd = 200.0;
+  //constexpr double pid_kd = 3.0;
   //static double pid_prev_p = 0.0;
-  //double& pid_p = dist_to_start_braking;
-  //double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p), 1.0), -1.0));
-  //if (true) {  // log
-  //  double pid_dbg = max(min(-pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p), 1.0), -1.0);
-  //  cout << std::setw(14) << pid_dbg << std::setw(6) << long long (dist_to_start_braking) << endl;
-  //}
+  //double pid_p = -target_dist;
+  //double pid_out = -pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p);
+  double throttle = Crop(0.0, pd_out, 1.0);
+  double brake = Crop(0.0, -pd_out, 1.0);
+  if (true) {  // log
+    cout << "pid:" << std::setw(14) << pd_out << " thr:" << std::setw(14) << throttle
+      <<" br:" << std::setw(14) << brake << std::setw(6) << long long (target_dist) << endl;
+  }
   //pid_prev_p = pid_p;
-  //double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
-  //double x_disp_decel = -CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
-  //cout << "PID out:" << pid_out << " P:" << pid_p << " D:" << (pid_p - pid_prev_p)
-  //  << " dist to start braking: " << dist_to_start_breaking << endl;
-
-  // TODO: abs prevents errors... by other errors?
-  //static PID follow_pid(0.1, 0.0, 0.5, -1.0, 1.0);  // TODO: reset it when?
-  //double pid_out = abs(follow_pid.Update(dist_to_start_breaking));
-  //double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
-  //double x_disp_decel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
+  double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * throttle;  // triangle ratio omitted because close to 1.0
+  double x_disp_decel = -CFG::kMaxDistPerFrameDecrement * brake;          // triangle ratio omitted because close to 1.0
 
   static double prev_x_displacement = 0.0;
   const double x_displacement = max(0.0, min(CFG::kPreferredDistPerFrame,
