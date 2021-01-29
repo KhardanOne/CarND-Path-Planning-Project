@@ -240,23 +240,40 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   // calculate the difference from prev trajectory end to the target
   double traj_end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
   double delta_speed = target_speed - traj_end_speed;
-  double dist_to_start_breaking = (delta_speed > 0.0) ?
-      target_dist
-    : target_dist - AccelDistance(-CFG::kPreferredDecel, ego_.speed, target_speed);
+  //double dist_to_start_braking = (delta_speed > 0.0) ?
+  //    target_dist
+  //  : target_dist - AccelDistance(-CFG::kPreferredDecel, ego_.speed, target_speed);
+  double dist_to_start_braking = target_dist;
 
   // PID controller to smoothen the follow distance                 // TODO: this cannot work since instatiation, only P
-  constexpr double pid_kp = 0.2;
-  constexpr double pid_kd = 15.0;
+  constexpr double pid_kp = 0.1;
+  constexpr double pid_kd = 3.0;
   static double pid_prev_p = 0.0;
-  double& pid_p = dist_to_start_breaking;
-  double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p), 1.0), -1.0));
+  double pid_p = -dist_to_start_braking; // -20m (20m ahead of ego)
+  //               -0.1 * -20 - 0.4 * (-20 - (-25))
+  //                   +2         -0.4 *   5 = 0
+  double pid_out = -pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p);
+  double throttle = Crop(0.0, pid_out, 1.0);
+  double brake = Crop(0.0, -pid_out, 1.0);
   if (true) {  // log
-    double pid_dbg = max(min(-pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p), 1.0), -1.0);
-    cout << std::setw(14) << pid_dbg << std::setw(6) << long long (dist_to_start_breaking) << endl;
+    cout << std::setw(14) << "pid:" << pid_out << " thr:" << throttle << " br:" << brake
+      << std::setw(6) << long long (dist_to_start_braking) << endl;
   }
   pid_prev_p = pid_p;
-  double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
-  double x_disp_decel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
+  double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * throttle;
+  double x_disp_decel = -CFG::kMaxDistPerFrameDecrement * x_ratio * brake;
+  //constexpr double pid_kp = 0.1;
+  //constexpr double pid_kd = 200.0;
+  //static double pid_prev_p = 0.0;
+  //double& pid_p = dist_to_start_braking;
+  //double pid_out = abs(max(min(-pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p), 1.0), -1.0));
+  //if (true) {  // log
+  //  double pid_dbg = max(min(-pid_kp * pid_p - pid_kd * (pid_p - pid_prev_p), 1.0), -1.0);
+  //  cout << std::setw(14) << pid_dbg << std::setw(6) << long long (dist_to_start_braking) << endl;
+  //}
+  //pid_prev_p = pid_p;
+  //double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
+  //double x_disp_decel = -CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
   //cout << "PID out:" << pid_out << " P:" << pid_p << " D:" << (pid_p - pid_prev_p)
   //  << " dist to start braking: " << dist_to_start_breaking << endl;
 
@@ -266,37 +283,22 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   //double x_disp_accel = CFG::kPreferredDistPerFrameIncrement * x_ratio * pid_out;
   //double x_disp_decel = CFG::kMaxDistPerFrameDecrement * x_ratio * pid_out;
 
-  // loop init
-  double x_progress = 0.0;
-  double last_x_displacement = ref_speed_ * CFG::kSimTimeStepS * x_ratio;
+  static double prev_x_displacement = 0.0;
+  const double x_displacement = max(0.0, min(CFG::kPreferredDistPerFrame,
+    prev_x_displacement + ((throttle > 0.0) ? x_disp_accel : x_disp_decel)));
+  prev_x_displacement = x_displacement;
 
-  // create trajectory nodes
-  for (size_t i = kept_prev_nodes_count_; i < CFG::kTrajectoryNodeCount; ++i) {
-    traj_end_speed = GetEndSpeed(out_x_vals, out_y_vals, ego_.x, ego_.y, ego_.speed);
-    delta_speed = target_speed - traj_end_speed;
-    dist_to_start_breaking = (delta_speed > 0.0) ?
-        target_dist   // TODO: use current value instead of the old one
-      : target_dist - AccelDistance(-CFG::kPreferredDecel, ego_.speed, target_speed);
-    if (log)
-      cout << i << " targetdist:" << target_dist <<  " speed:" << target_speed
-        << " endspd:" << traj_end_speed << " delta:" << delta_speed << " brake in:"
-        << dist_to_start_breaking << "m" << endl;
-    const double x_displacement = (dist_to_start_breaking < 0.0) ?
-        max(last_x_displacement - x_disp_decel, 0.0)                 // decelerate
-      : min(last_x_displacement + x_disp_accel, preferred_delta_x);  // accelerate or keep speed
-
-    if (x_displacement < 0.00000001)  // avoid having two points whith the same coords
-      break;
-
-    last_x_displacement = x_displacement;
-    const double x = x_progress + x_displacement;
-    const double y = spline(x);
-    x_progress = x;
-    target_dist -= x_displacement;  // good enough and fast approximation
-    const vector<double> pos = TransformCoordFromRef(x, y);
-    out_x_vals.push_back(pos[0]);
-    out_y_vals.push_back(pos[1]);
-    ++nodes_added;
+  if (x_displacement > 0.00000001) {  // avoid having two points whith the same coords
+    double x_progress = 0.0;
+    for (size_t i = kept_prev_nodes_count_; i < CFG::kTrajectoryNodeCount; ++i) {
+      const double x = x_progress + x_displacement;
+      const double y = spline(x);
+      x_progress = x;
+      const vector<double> pos = TransformCoordFromRef(x, y);
+      out_x_vals.push_back(pos[0]);
+      out_y_vals.push_back(pos[1]);
+      ++nodes_added;
+    }
   }
   if (CFG::kDebug) {
     IsMonotonic(out_x_vals, out_y_vals, ego_.x, ego_.y);
