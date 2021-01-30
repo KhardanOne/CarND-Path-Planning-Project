@@ -1,8 +1,10 @@
 #include "helpers.h"
+
+#include <algorithm>
+#include <iostream>
+
 #include "config.h"
 #include "map.h"
-#include <iostream>
-#include <algorithm>
 
 using std::min;
 using std::max;

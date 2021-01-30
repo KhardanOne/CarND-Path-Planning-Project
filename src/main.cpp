@@ -5,16 +5,17 @@
   #include <uWS/uWS.h>
 #endif 
 
-#include "config.h"
-#include "map.h"
-#include "ego_car.h"
-#include "behavior_planner.h"
-#include "helpers.h"
-#include "json.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include "json.hpp"
+#include "config.h"
+#include "behavior_planner.h"
+#include "ego_car.h"
+#include "helpers.h"
+#include "map.h"
 
 using nlohmann::json;
 using std::string;

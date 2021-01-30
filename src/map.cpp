@@ -1,11 +1,12 @@
 #include "map.h"
-#include "config.h"
-#include <vector>
-#include <string>
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <vector>
 
+#include "config.h"
 
 Map::Map(std::string const & file_fqn, double lap_length)
     : max_s(lap_length) {

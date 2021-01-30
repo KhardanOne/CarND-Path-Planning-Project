@@ -1,11 +1,12 @@
 #ifndef BEHAVIOR_PLANNER_H
 #define BEHAVIOR_PLANNER_H
 
-#include "trajectory.h"
+#include <string>
+
 #include "ego_car.h"
 #include "map.h"
 #include "sensor_fusion.h"
-#include <string>
+#include "trajectory.h"
 
 class BehaviorPlanner {
  public:

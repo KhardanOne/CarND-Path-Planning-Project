@@ -1,13 +1,15 @@
 #include "sensor_fusion.h"
-#include "helpers.h"
-#include "ego_car.h"
-#include "map.h"
-#include "config.h"
-#include <vector>
+
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <stdio.h>
-#include <algorithm>
+#include <vector>
+
+#include "config.h"
+#include "ego_car.h"
+#include "helpers.h"
+#include "map.h"
 
 using std::vector;
 using std::min;

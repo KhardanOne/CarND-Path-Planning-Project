@@ -1,9 +1,11 @@
-#include "config.h"
 #include "spline_def.h"
-#include "helpers.h"
-#include "ego_car.h"
-#include "trajectory.h"
+
 #include <iostream>
+
+#include "config.h"
+#include "ego_car.h"
+#include "helpers.h"
+#include "trajectory.h"
 
 constexpr double kSmallDist = 2.0;       // define a point in front of the car this far away
 constexpr double kFarPointDist1 = 40.0;  // how far away do we want our spline to end

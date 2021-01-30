@@ -1,8 +1,8 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include <vector>
 #include <string>
+#include <vector>
 
 struct Map {
   Map(std::string const& file_fqn, double lap_length);

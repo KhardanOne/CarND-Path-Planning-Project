@@ -1,12 +1,14 @@
 #include "behavior_planner.h"
-#include "helpers.h"
-#include "config.h"
-#include "trajectory.h"
-#include "sensor_fusion.h"
-#include "pid.h"
+
 #include <cmath>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+
+#include "config.h"
+#include "helpers.h"
+#include "pid.h"
+#include "sensor_fusion.h"
+#include "trajectory.h"
 
 #ifdef _WIN32
 #include <Windows.h>

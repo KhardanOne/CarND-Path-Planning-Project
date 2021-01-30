@@ -1,12 +1,14 @@
 #include "trajectory.h"
-#include "helpers.h"
-#include "config.h"
+
+#include <iomanip>
+#include <iostream>
+
+#include <Eigen/Dense>
 #include "tk_spline.h"
+#include "config.h"
+#include "helpers.h"
 #include "pid.h"
 #include "spline_def.h"
-#include <Eigen/Dense>
-#include <iostream>
-#include <iomanip>
 
 using std::min;
 using std::max;

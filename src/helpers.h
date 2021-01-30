@@ -2,7 +2,9 @@
 #define HELPERS_H
 
 #include "map.h"
+
 #include <math.h>
+
 #include <string>
 #include <vector>
 

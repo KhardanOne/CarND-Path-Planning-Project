@@ -1,9 +1,10 @@
 #ifndef SENSOR_FUSION_H
 #define SENSOR_FUSION_H
 
-#include "map.h"
-#include "ego_car.h"
 #include <vector>
+
+#include "ego_car.h"
+#include "map.h"
 
 
 struct SFCar {
