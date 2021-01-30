@@ -1,13 +1,12 @@
 #ifndef TRAJECTORY_H
 #define TRAJECTORY_H
 
-#include <vector>
-
 #include "ego_car.h"
-#include "helpers.h"
 #include "map.h"
 #include "pid.h"
 #include "tk_spline.h"
+#include "helpers.h"
+#include <vector>
 
 using Spline = tk::spline;
 

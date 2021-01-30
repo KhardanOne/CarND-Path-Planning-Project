@@ -1,10 +1,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <float.h>
-
-#include <limits>
 #include <vector>
+#include <limits>
+#include <float.h>
 
 /*
  * Config
