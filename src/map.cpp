@@ -31,7 +31,7 @@ Map::Map(std::string const & file_fqn, double lap_length)
   }
 
   if (waypoints_x.size() == 0) {
-    std::cout << "ERROR: missing map data. Check your path." << std::endl;
+    std::cout << "ERROR: missing map data on path:" << file_fqn << std::endl;
   } else if (cfg::kVerbose >= cfg::kImportant) {
     std::cout << "Map initialized with " << waypoints_x.size() << " elements." << std::endl;
   }

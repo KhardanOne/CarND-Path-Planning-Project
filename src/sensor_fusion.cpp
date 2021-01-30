@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <iostream>
 #include <stdio.h>
+#include <algorithm>
 
 using std::vector;
 using std::min;
@@ -99,7 +100,7 @@ bool SensorFusion::IsLaneOpen(int lane, EgoCar const& ego, Map const& map) {
   double dist_limit_pow2 = cfg::kLaneWindowHalfLength * cfg::kLaneWindowHalfLength;
   for (double time = 0.0; time <= cfg::kLaneChangeDuration; time += 1.0) {
     vector<double> ego_pred_pos = GetPredictedPos(ego, time);
-    for (int car_idx_lane = 0; car_idx_lane < cars_count; ++car_idx_lane) {
+    for (size_t car_idx_lane = 0; car_idx_lane < cars_count; ++car_idx_lane) {
       int car_idx_sf = lane_cars[car_idx_lane];
       vector<double> const& raw = cars_[car_idx_sf].raw;
       vector<double> pred_pos = GetPredictedPos(car_idx_sf, time);
