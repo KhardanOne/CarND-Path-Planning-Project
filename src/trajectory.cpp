@@ -60,10 +60,12 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   const Spline spline = DefineSpline(target_lane);
 
   const double target_dist = max(front_car_dist, 0.0) - cfg::kCarLength - cfg::kBufferDist;
-  static PDPow pd(0.1, 3.0, 2.0);
-  const double pd_out = pd.Update(-target_dist);
-  const double throttle = Crop(0.0, pd_out, 1.0);
-  const double brake = Crop(0.0, -pd_out, 1.0);
+
+  // in-place stateless PD-Controller
+  const double pd_error_d   = (ego_.speed - front_car_speed) * cfg::kSimTimeStepS;
+  const double pd_out       = 0.1 * target_dist - 3.0 * pd_error_d;
+  const double throttle     = Crop(0.0,  pd_out, 1.0);
+  const double brake        = Crop(0.0, -pd_out, 1.0);
   const double x_disp_accel = cfg::kPreferredDistPerFrameIncrement * throttle;  // triangle ratio omitted because close to 1.0
   const double x_disp_decel = -cfg::kMaxDistPerFrameDecrement * brake;          // triangle ratio omitted because close to 1.0
 
@@ -73,11 +75,10 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   prev_x_displacement = x_displacement;
 
   if (x_displacement > 0.00000001) {  // avoid having two points whith the same coords
-    double x_progress = 0.0;
+    double x = 0.0;
     for (size_t i = kept_prev_nodes_count_; i < cfg::kTrajectoryNodeCount; ++i) {
-      const double x = x_progress + x_displacement;
+      x += x_displacement;
       const double y = spline(x);
-      x_progress = x;
       const vector<double> pos = TransformCoordFromRef(x, y);
       out_x_vals.push_back(pos[0]);
       out_y_vals.push_back(pos[1]);

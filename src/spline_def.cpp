@@ -18,7 +18,7 @@ using std::vector;
 
 
 SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
-  if (cfg::kVerbose >= cfg::kImportant)
+  if (cfg::kVerbose >= cfg::kAll)
     cout << "nodes_to_keep:" << nodes_to_keep;
   xs.push_back(sim_prev.x_vals[nodes_to_keep - 3]);
   ys.push_back(sim_prev.y_vals[nodes_to_keep - 3]);

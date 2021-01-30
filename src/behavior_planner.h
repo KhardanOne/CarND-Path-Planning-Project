@@ -28,6 +28,8 @@ class BehaviorPlanner {
   std::vector<std::string> state_names_;
   int state_;
   int target_lane_ = 1;
+  size_t nodes_added_ = 0;
+  size_t frame_count_ = 0;
 };
 
 #endif  // BEHAVIOR_PLANNER_H

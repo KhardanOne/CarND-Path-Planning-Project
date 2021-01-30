@@ -17,7 +17,7 @@
  */
 namespace cfg {
   enum Verbose {kOff, kImportant, kAll};
-  constexpr int    kVerbose = kAll;
+  constexpr int    kVerbose = kImportant;
   constexpr bool   kDebug = false;
 
   // basic hard parameters
