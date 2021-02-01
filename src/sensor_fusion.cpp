@@ -82,6 +82,10 @@ vector<double> SensorFusion::GetPredictedPos(EgoCar const& ego, double time) {
   return result;
 }
 
+double SensorFusion::GetSpeed(int car_id) const {
+  return Speed(cars_[car_id].raw[SF::VX], cars_[car_id].raw[SF::VY]);
+}
+
 double SensorFusion::GetLaneSpeed(double from_s, int lane) {
   const int car_idx = GetCarInFront(from_s, lane);
   if (car_idx == -1) {

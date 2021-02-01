@@ -33,16 +33,20 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   bool log = false;
 
   ++frame_count_;
-  cout << "\nfr:" << frame_count_ << " ";
+  if (log) cout << "\nfr:" << frame_count_ << " ";
   SensorFusion sf(sensor_fusion, map.max_s);
-  const int lane = ego.GetLane();
+  const int lane               = ego.GetLane();
+  const int front_car          = sf.GetCarInFront(ego.s, lane);
+  const double front_car_dist  = front_car > -1 ? GetDistanceForward(ego.s, sf.cars_[front_car].raw[SF::S])
+                                                : cfg::kInfinite;
+  const double front_car_speed = front_car > -1 ? sf.GetSpeed(front_car) : cfg::kPreferredSpeed;
 
   switch (state_) {
 
     case kKeepLane: {
-      if (log)
-        cout << ": KEEP_LANE   ";
-      target_lane_ = sf.SelectTargetLane(ego, map);
+      if (log) cout << ": KEEP_LANE   ";
+      if (ego.speed > front_car_speed - 1.5 && ego.speed < front_car_speed + 5.0 && front_car_dist > 8.0)  // for safety
+        target_lane_ = sf.SelectTargetLane(ego, map);
       if (target_lane_ > lane) {
         state_ = kGoRight;
       } else if (target_lane_ < lane) {
@@ -52,8 +56,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     }
 
     case kGoLeft: {
-      if (log)
-        cout << "GO_LEFT     ";
+      if (log) cout << "GO_LEFT     ";
       if (IsInLaneCenter(ego.d, target_lane_)) {
         state_ = kKeepLane;
       }
@@ -61,8 +64,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     }
 
     case kGoRight: {
-      if (log)
-        cout << "GO_RIGHT    ";
+      if (log) cout << "GO_RIGHT    ";
       if (IsInLaneCenter(ego.d, target_lane_)) {
         state_ = kKeepLane;
       }
@@ -70,8 +72,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     }
 
     default: {
-      if (log)
-        cout << "INVALID     ";
+      if (log) cout << "INVALID     ";
     }
   }
 
@@ -89,15 +90,21 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
 
   // prepare info for CreateTrajectory
   double target_dist, target_speed;
-  int front_car = sf.GetCarInFront(ego.s, target_lane_);
-  if (front_car == -1) {
+  int target_front_car = sf.GetCarInFront(ego.s, target_lane_);
+  if (target_front_car == -1) {
     target_dist = cfg::kInfinite;
     target_speed = cfg::kInfinite;
   } else {
-    vector<double> const& raw = sf.cars_[front_car].raw;
+    vector<double> const& raw = sf.cars_[target_front_car].raw;
     target_dist = GetDistanceForward(ego.s, raw[SF::S]);
     target_speed = Speed(raw[SF::VX], raw[SF::VY]);
   }
+
+  // taking over with big speed difference is dangerous... avoid it
+  if (target_lane_ != lane && front_car_dist < 40.0) {
+    target_speed = min(target_speed, max(0.0, front_car_speed) - cfg::kTakeOverSpeedDiff);
+  }
+
   TrajectoryBuilder trajectory_builder(map, ego, sim_prev);
   nodes_added_ += trajectory_builder.Create(out_x_vals, out_y_vals, target_lane_, target_dist, target_speed);
 }

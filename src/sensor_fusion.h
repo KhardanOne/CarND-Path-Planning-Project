@@ -47,6 +47,8 @@ class SensorFusion {
   std::vector<double> GetPredictedPos(int car_id, double time);
   std::vector<double> GetPredictedPos(EgoCar const& ego, double time);
 
+  double GetSpeed(int car_id) const;
+
   double GetPredictedS(EgoCar const& ego, double time);
 
   double GetLaneSpeed(double from_s, int lane);

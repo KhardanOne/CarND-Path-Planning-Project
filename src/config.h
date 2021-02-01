@@ -18,32 +18,33 @@
 namespace cfg {
   enum Verbose {kOff, kImportant, kAll};
   constexpr int    kVerbose = kImportant;
-  constexpr bool   kDebug = false;
+  constexpr bool   kDebug   = false;
 
   // basic hard parameters
-  constexpr double kMphToMps = 0.44704;
-  constexpr double kSimTimeStepS = 0.02;
-  constexpr double kLapLength = 6945.554;
-  constexpr double kInfinite = DBL_MAX;
-  constexpr double kMaxSpeedMph = 49.8;
-  constexpr double kMaxAccel = 9.8;
-  constexpr double kMaxDecel = 9.8;
-  constexpr double kMaxJerk = 9.8;
-  constexpr double kCarLength = 5.0;
-  constexpr int    kLaneCount = 3;
-  constexpr double kLaneWidth = 4.0;
+  constexpr double kMphToMps      = 0.44704;
+  constexpr double kSimTimeStepS  = 0.02;
+  constexpr double kLapLength     = 6945.554;
+  constexpr double kInfinite      = DBL_MAX;
+  constexpr double kMaxSpeedMph   = 49.8;
+  constexpr double kMaxAccel      = 9.8;
+  constexpr double kMaxDecel      = 9.8;
+  constexpr double kMaxJerk       = 9.8;
+  constexpr double kCarLength     = 5.0;
+  constexpr int    kLaneCount     = 3;
+  constexpr double kLaneWidth     = 4.0;
 
   // basic tuning parameters
-  constexpr double kTrajectoryLengthSec = 2.0;      // determines the number of nodes in trajectory
-  constexpr double kTrajectoryMinLengthSec = 0.2;   // determines the amount of nodes kept from previous frame
-  constexpr double kPreferredSpeedMph = 49.45;
-  constexpr double kPreferredAccel = 3.0;
-  constexpr double kPreferredDecel = 6.0;
-  constexpr double kKeepLaneAboveFreeDist = 200.0;
-  constexpr double kBufferDist = 11.0;              // Distance to follow the forward car from, car center to car center
-  constexpr double kLaneWindowHalfLength = 10.0;    // space required for lane change
-  constexpr double kLaneChangeDuration = 3.0;       // the window must be open for this long, will be sampled every second
-  constexpr double kLaneCenterOffsetLimit = 0.6;    // car is considered "inside" lane if it is closer than this:
+  constexpr double kTrajectoryLengthSec     = 2.0;    // determines the number of nodes in trajectory
+  constexpr double kTrajectoryMinLengthSec  = 0.2;    // determines the amount of nodes kept from previous frame
+  constexpr double kPreferredSpeedMph       = 49.45;
+  constexpr double kPreferredAccel          = 3.0;
+  constexpr double kPreferredDecel          = 6.0;
+  constexpr double kKeepLaneAboveFreeDist   = 200.0;
+  constexpr double kBufferDist              = 14.0;   // Distance to follow the forward car from, car center to car center
+  constexpr double kLaneWindowHalfLength    = 16.0;   // space required for lane change
+  constexpr double kLaneChangeDuration      = 6.0;    // the window must be open for this long, will be sampled every second
+  constexpr double kLaneCenterOffsetLimit   = 0.6;    // car is considered "inside" lane if it is closer than this:
+  constexpr double kTakeOverSpeedDiff       = 4.0;    // if take over requires a lane-change, then don't take-over with big speed difference
 
   // calculated values
   constexpr double kMaxSpeed = kMaxSpeedMph * kMphToMps;
