@@ -41,7 +41,7 @@ Security measures:
 It instantiates and uses SensorFusion and TrajectoryGenerator.
 
 ## Sensor Fusion
-Is is a high level sensor-fusion class. Notable methods:
+A high level sensor-fusion class. Notable methods:
 - `GetCarInFront()` returns the ID of the car in front of the ego car, taking into account the circular nature of the map.
 - `GetPredictedPos()` returns the predicted position of a car. Overloaded for ego and non-ego cars.
 - `IsLaneOpen()` returns true if no predicted car positions get close to the predicted ego car positions, false otherwise.
