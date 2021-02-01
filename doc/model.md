@@ -57,7 +57,7 @@ Then it calls its `GetTrajectory()` method with parameters of `target_lane`, `fr
 3. `DefineSpline()` creates 3 `x` and `y` values and passes them to the tk::spline constructor. A spline can be created in the following ways:
    - From the ego pose: if there are no usable previous trajectory nodes
    - From the previous trajectory: using the last 3 nodes if
-4. `Extend()` adds 3 more nodes the distance in the target lane to define a smooth spline. A tk::spline instance is returned. 
+4. `Extend()` adds 3 more nodes in the distance in the target lane to define a smooth spline. A tk::spline instance is returned. 
 5. A displacement value is calculated with a PD controller.
 6. The trajectory is filled with nodes in a `for` loop:
    - the `x` value is incremented by the displacement
