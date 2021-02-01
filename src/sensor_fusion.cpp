@@ -77,8 +77,8 @@ vector<double> SensorFusion::GetPredictedPos(int car_id, double time) {
 
 vector<double> SensorFusion::GetPredictedPos(EgoCar const& ego, double time) {
   vector<double> result;
-  result.push_back(ego.x + ego.speed * cos(ego.yaw));
-  result.push_back(ego.y + ego.speed * sin(ego.yaw));
+  result.push_back(ego.x + time * ego.speed * cos(ego.yaw));
+  result.push_back(ego.y + time * ego.speed * sin(ego.yaw));
   return result;
 }
 
@@ -97,21 +97,33 @@ double SensorFusion::GetPredictedS(EgoCar const& ego, double time) {
 }
 
 bool SensorFusion::IsLaneOpen(int lane, EgoCar const& ego, Map const& map) {
+  bool log = true;
   vector<int> const& lane_cars = lanes_[lane];
   size_t cars_count = lane_cars.size();
   double dist_limit_pow2 = cfg::kLaneWindowHalfLength * cfg::kLaneWindowHalfLength;
+  if (log) cout<<"\n\nIsLaneOpen("<<lane<<") ego x:"<<ego.x<<" y:"<<ego.y<<" v:"<<ego.speed <<" a:"<<ego.yaw<<endl;;
   for (double time = 0.0; time <= cfg::kLaneChangeDuration; time += 1.0) {
     vector<double> ego_pred_pos = GetPredictedPos(ego, time);
+    if (log) cout<<"  T"<<time<<" ego pred x:"<<ego_pred_pos[0]<<" y:"<<ego_pred_pos[1]<<endl;
     for (size_t car_idx_lane = 0; car_idx_lane < cars_count; ++car_idx_lane) {
       int car_idx_sf = lane_cars[car_idx_lane];
       vector<double> const& raw = cars_[car_idx_sf].raw;
       vector<double> pred_pos = GetPredictedPos(car_idx_sf, time);
       double dist_pow2 = DistancePow2(ego_pred_pos[0], ego_pred_pos[1],
                                       pred_pos[0], pred_pos[1]);
-      if (dist_pow2 < dist_limit_pow2)
+      if (log) {
+        bool in_front = IsInFront(ego.s, raw[SF::S]);
+        char sign = in_front ? '+' : '-';
+        cout<<"car# "<<car_idx_sf<< " d:"<<sign<<sqrt(dist_pow2)<<" x:"<<pred_pos[0]<<" y:"<<pred_pos[1]<<endl;
+      }
+      if (dist_pow2 < dist_limit_pow2) {
+        if (log) cout<<"return false"<<endl;
         return false;
+      }
+        
     }
   }
+  if (log) cout<<"return true"<<endl;
   return true;
 }
 
@@ -125,7 +137,7 @@ bool SensorFusion::IsLaneOpen(int lane, EgoCar const& ego, Map const& map) {
  *                                    12345.6<< 12345.6<< 12345.6<<
  *  ^0                                ^42                          ^84
  */
-int SensorFusion::GetTargetLane(EgoCar const& ego, Map const& map) {
+int SensorFusion::SelectTargetLane(EgoCar const& ego, Map const& map) {
   int center = 1;
   int best = center;
   double center_dist = GetPredictedDistanceBeforeObstructed(center, ego, map);
@@ -146,7 +158,7 @@ int SensorFusion::GetTargetLane(EgoCar const& ego, Map const& map) {
   }
 
   // consider current lane next if it is not the center
-  // only these two lanes can be valid choices so far  // TODO: add some path finding
+  // only these two lanes can be valid choices so far  // TODO: add some path-finding
   double cur_dist = GetPredictedDistanceBeforeObstructed(current, ego, map);
   vector<double> dists(3, -1.0);  // for logging
   dists[1] = center_dist;
@@ -238,7 +250,7 @@ double SensorFusion::GetPredictedDistanceBeforeObstructed(
 /*
  * Prints lane info for debugging purposes
  * Legend:
- *    o   o - this lane would be selected by GetTargetLane()
+ *    o   o - this lane would be selected by SelectTargetLane()
  *    >   < - current lane
  *    !! !! - blocked lane
  *    123.3 - free distance, considering speeds
@@ -256,7 +268,7 @@ void SensorFusion::PrintLaneChangeInfo(EgoCar const& ego, Map const& map) {
   opens.push_back(IsLaneOpen(1, ego, map));
   opens.push_back(IsLaneOpen(2, ego, map));
   int lane = DToLane(ego.d);
-  int lane_choise = GetTargetLane(ego, map);
+  int lane_choise = SelectTargetLane(ego, map);
 
   cout << std::setw(5) << int(ego.s) << " "
     << std::setw(7) << fmod(ego.d, cfg::kLaneWidth) - cfg::kHalfLaneWidth

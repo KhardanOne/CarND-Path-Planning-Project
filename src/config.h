@@ -35,15 +35,15 @@ namespace cfg {
 
   // basic tuning parameters
   constexpr double kTrajectoryLengthSec = 2.0;      // determines the number of nodes in trajectory
-  constexpr double kTrajectoryMinLengthSec = 0.1;   // determines the amount of nodes kept from previous frame
+  constexpr double kTrajectoryMinLengthSec = 0.2;   // determines the amount of nodes kept from previous frame
   constexpr double kPreferredSpeedMph = 49.45;
   constexpr double kPreferredAccel = 3.0;
   constexpr double kPreferredDecel = 6.0;
   constexpr double kKeepLaneAboveFreeDist = 200.0;
-  constexpr double kBufferDist = 10.0;              // Distance to follow the forward car from, car center to car center
-  constexpr double kLaneWindowHalfLength = 15.0;    // space required for lane change
+  constexpr double kBufferDist = 11.0;              // Distance to follow the forward car from, car center to car center
+  constexpr double kLaneWindowHalfLength = 10.0;    // space required for lane change
   constexpr double kLaneChangeDuration = 3.0;       // the window must be open for this long, will be sampled every second
-  constexpr double kLaneCenterOffsetLimit = 1.0;    // car is considered "inside" lane if it is closer than this:
+  constexpr double kLaneCenterOffsetLimit = 0.6;    // car is considered "inside" lane if it is closer than this:
 
   // calculated values
   constexpr double kMaxSpeed = kMaxSpeedMph * kMphToMps;

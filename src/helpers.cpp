@@ -66,6 +66,11 @@ double GetDistanceForward(double from_s, double to_s) {
   return distance;
 }
 
+bool IsInFront(double ego_s, double target_s) {
+  const double dist = GetDistanceForward(ego_s, target_s);
+  return dist > 0 && dist < cfg::kLapLength / 2.0;
+}
+
 double Distance(double x1, double y1, double x2, double y2) {
   return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }

@@ -59,6 +59,11 @@ double MpsToMph(double speed);
 // @output distance
 double GetDistanceForward(double from_s, double to_s);
 
+/*
+ * Returns true if target_s is in front of ego_s (and not behind).
+ */
+bool IsInFront(double ego_s, double target_s);
+
 // Calculate Distance between two points
 double Distance(double x1, double y1, double x2, double y2);
 

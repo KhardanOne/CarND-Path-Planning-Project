@@ -51,7 +51,7 @@ class SensorFusion {
 
   double GetLaneSpeed(double from_s, int lane);
   bool IsLaneOpen(int lane, EgoCar const& ego, Map const& map);
-  int GetTargetLane(EgoCar const& ego, Map const& map);
+  int SelectTargetLane(EgoCar const& ego, Map const& map);
 
   /*
    * Calculates the distance that can be driven before the ego car 

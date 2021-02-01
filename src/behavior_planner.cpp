@@ -42,7 +42,7 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
     case kKeepLane: {
       if (log)
         cout << ": KEEP_LANE   ";
-      target_lane_ = sf.GetTargetLane(ego, map);
+      target_lane_ = sf.SelectTargetLane(ego, map);
       if (target_lane_ > lane) {
         state_ = kGoRight;
       } else if (target_lane_ < lane) {
