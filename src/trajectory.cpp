@@ -3,7 +3,6 @@
 #include <iomanip>
 #include <iostream>
 
-#include <Eigen/Dense>
 #include "tk_spline.h"
 #include "config.h"
 #include "helpers.h"

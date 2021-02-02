@@ -19,7 +19,7 @@ using std::vector;
 
 SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
   if (cfg::kVerbose >= cfg::kAll)
-    cout << "nodes_to_keep:" << nodes_to_keep;
+    cout << "nodes_to_keep:" << nodes_to_keep << endl;
   xs.push_back(sim_prev.x_vals[nodes_to_keep - 3]);
   ys.push_back(sim_prev.y_vals[nodes_to_keep - 3]);
   xs.push_back(sim_prev.x_vals[nodes_to_keep - 2]);
@@ -30,7 +30,7 @@ SplineDef::SplineDef(PrevPathFromSim const& sim_prev, size_t nodes_to_keep) {
 
 SplineDef::SplineDef(double x, double y, double yaw) {
   if (cfg::kVerbose >= cfg::kImportant)
-    cout << "start with 0 nodes";
+    cout << "start with 0 nodes" << endl;
   double delta_x = kSmallDist * cos(yaw);
   double delta_y = kSmallDist * sin(yaw);
   xs.push_back(x - delta_x);

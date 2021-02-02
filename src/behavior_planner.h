@@ -10,7 +10,7 @@
 
 class BehaviorPlanner {
  public:
-  enum State {kInvalid, kStarting, kKeepLane, kGoLeft, kGoRight};
+  enum State {kInvalid, kKeepLane, kGoLeft, kGoRight};
 
   BehaviorPlanner();
   virtual ~BehaviorPlanner() = default;
@@ -21,6 +21,8 @@ class BehaviorPlanner {
                      EgoCar const& ego_loc,
                      std::vector<std::vector<double>> const& sensor_fusion,
                      PrevPathFromSim const& prev_path);
+
+  void SwitchTo(State state);
 
  private:
   static void PrintStats(EgoCar const& ego_loc, Map const& map);

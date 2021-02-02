@@ -21,7 +21,7 @@ using std::endl;
 using std::vector;
 
 BehaviorPlanner::BehaviorPlanner()
-    : state_names_({"INVALID", "STARTING", "KEEP_LANE", "GO_LEFT", "GO_RIGHT"}),
+    : state_names_({"INVALID", "keep lane", "go left", "go right"}),
       state_(kKeepLane) {}
 
 void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
@@ -44,29 +44,36 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
   switch (state_) {
 
     case kKeepLane: {
-      if (log) cout << ": KEEP_LANE   ";
-      if (ego.speed > front_car_speed - 1.5 && ego.speed < front_car_speed + 5.0 && front_car_dist > 8.0)  // for safety
+      if (log) cout << ": keep lane   ";
+      const bool consider_lane_change = 
+           ego.speed > front_car_speed - 1.5  // otherwise ego car is slowed down too much by PD controller
+        && ego.speed > 6.0                    // otherwise lane change could take too long
+        && ego.speed < front_car_speed + 5.0  // otherwise ego car possibly can get too close to the other car
+        && front_car_dist > 10.0;             // otherwise dangerously close
+
+      if (consider_lane_change) {
         target_lane_ = sf.SelectTargetLane(ego, map);
-      if (target_lane_ > lane) {
-        state_ = kGoRight;
-      } else if (target_lane_ < lane) {
-        state_ = kGoLeft;
+        if (target_lane_ > lane) {
+          SwitchTo(kGoRight);
+        } else if (target_lane_ < lane) {
+          SwitchTo(kGoLeft);
+        }
       }
       break;
     }
 
     case kGoLeft: {
-      if (log) cout << "GO_LEFT     ";
+      if (log) cout << "go left     ";
       if (IsInLaneCenter(ego.d, target_lane_)) {
-        state_ = kKeepLane;
+        SwitchTo(kKeepLane);
       }
       break;
     }
 
     case kGoRight: {
-      if (log) cout << "GO_RIGHT    ";
+      if (log) cout << "go_right    ";
       if (IsInLaneCenter(ego.d, target_lane_)) {
-        state_ = kKeepLane;
+        SwitchTo(kKeepLane);
       }
       break;
     }
@@ -107,6 +114,12 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
 
   TrajectoryBuilder trajectory_builder(map, ego, sim_prev);
   nodes_added_ += trajectory_builder.Create(out_x_vals, out_y_vals, target_lane_, target_dist, target_speed);
+}
+
+void BehaviorPlanner::SwitchTo(State state) {
+  bool log = true;
+  state_ = state;
+  if (log) cout << "state: " << state_names_[state_] << endl;
 }
 
 void BehaviorPlanner::PrintStats(EgoCar const & ego,

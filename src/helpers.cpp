@@ -179,6 +179,7 @@ vector<double> GetXY(double s, double d, Map const& map) {
   size_t s_size = maps_s.size();
  
   bool log = true;
+  static long long log_prev_wp = 0;
 
   long long prev_wp = -1;
   s = fmod(s, map.max_s);
@@ -191,8 +192,8 @@ vector<double> GetXY(double s, double d, Map const& map) {
   prev_wp %= s_size;
 
   long long wp2 = (prev_wp + 1) % s_size;
-  if (log && (wp2 < 2 || prev_wp >= 179))
-    cout << " prew_wp=" << prev_wp << " wp2=" << wp2;
+  //if (log && (wp2 < 2 || prev_wp >= 179))
+  //  cout << " prew_wp=" << prev_wp << " wp2=" << wp2;
 
   double heading = atan2((maps_y[wp2] - maps_y[prev_wp]), (maps_x[wp2] - maps_x[prev_wp]));
   // the x,y,s along the segment
@@ -207,14 +208,18 @@ vector<double> GetXY(double s, double d, Map const& map) {
 
   double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
   double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
-  if (log && (wp2 < 2 || prev_wp >= 179))
-    cout << " seg_s=" << seg_s << " seg_x=" << seg_x << " seg_y=" << seg_y << " heading: " << heading;
+  //if (log && wp2 != log_prev_wp && (wp2 == 180 || wp2 == 0)) {
+  //  cout << s << "GetXY(): wp2:" << wp2 << endl;
+  //  log_prev_wp = wp2;
+  //}
+  //if (log && (wp2 < 2 || prev_wp >= 179))
+  //  cout << " seg_s=" << seg_s << " seg_x=" << seg_x << " seg_y=" << seg_y << " heading: " << heading;
 
   double perp_heading = heading - M_PI_2;
   double x = seg_x + d * cos(perp_heading);
   double y = seg_y + d * sin(perp_heading);
-  if (log && (wp2 < 2 || prev_wp >= 179))
-    cout << " x=" << x << " y=" << y << endl;
+  //if (log && (wp2 < 2 || prev_wp >= 179))
+  //  cout << " x=" << x << " y=" << y << endl;
 
   return { x, y };
 }

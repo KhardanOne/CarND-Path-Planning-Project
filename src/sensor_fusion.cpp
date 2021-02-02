@@ -101,7 +101,7 @@ double SensorFusion::GetPredictedS(EgoCar const& ego, double time) {
 }
 
 bool SensorFusion::IsLaneOpen(int lane, EgoCar const& ego, Map const& map) {
-  bool log = true;
+  bool log = false;
   vector<int> const& lane_cars = lanes_[lane];
   size_t cars_count = lane_cars.size();
   double dist_limit_pow2 = cfg::kLaneWindowHalfLength * cfg::kLaneWindowHalfLength;

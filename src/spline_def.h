@@ -7,6 +7,10 @@ struct PrevPathFromSim;
 struct EgoCar;
 struct Map;
 
+#ifndef _WIN32
+typedef long unsigned int size_t;
+#endif
+
 /* 
  * Definitin of a spline.
  * The xs and ys values serve as inputs for tk_spline set_points().
