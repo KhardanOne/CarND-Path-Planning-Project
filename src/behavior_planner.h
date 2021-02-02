@@ -15,6 +15,11 @@ class BehaviorPlanner {
   BehaviorPlanner();
   virtual ~BehaviorPlanner() = default;
 
+  bool ShouldConsiderLaneChanges(EgoCar const& ego,
+                                 double front_car_dist,
+                                 double front_car_speed,
+                                 bool verbose) const;
+
   void GetTrajectory(std::vector<double>& out_x_vals,
                      std::vector<double>& out_y_vals,
                      Map const& map,

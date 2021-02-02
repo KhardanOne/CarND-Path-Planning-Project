@@ -11,6 +11,7 @@ The current solution works as follows:
 - It checks the lane speed of neigbouring lanes if it catches up a slower car.
 - It checks if the faster lanes have and will have enough free space to switch into it.
 - It switches lane to the faster lane if possible, slows down otherwise.
+- It prefers middle lane as it opens more opportunities.
 
 The image is showing the car running for 42 minutes (in 54 minutes) without any incidents:
 ![Running for 42 minutes without any incidents](distance_without_incident.jpg)
@@ -36,11 +37,16 @@ A finite state machine with the following states:
 - **keep lane**: checks for faster lanes if certain security measures are met and initiates lane changes
 - **go left** and **go right**: the car stays in the state until the change is finished. A lane change is considered finished when the car is closer to lane center than 0.4 meters. Then it switches back to keep lane state.
 
-Security measures:
-- The car doesn't start a lane change if it is slower than the car in front. This usually happens when the PD controller temporarily slows the ego car down. Lane change in this phase would be dangerous, as fast cars might be arriving in the target lane.
-- Slow down a tiny bit before lane switch to keep more space to the cought-up car.
-- Don't start lane change if the front car is too close.
-- Don't start lane change if speed is below 6 meters per second to avoid spending too much time between lanes.
+### Security measures
+Behavior Planner considers lane changes only if they are considered safe. 
+
+* If there is a car in front of ego car, then lane switching is considered safe if *all* of the following conditions are met:
+  - the speed difference is not too high
+  - the ego car speed is not much slower than the cought up car's speed
+  - the ego car is not too slow (which could result in too long lane switching)
+  - the ego car is not too close
+* If there is no car ahead, then a lane switching is considered safe if:
+  - the ego car is not too slow (which could result in too long lane switching)
 
 The BehaviorPlanner instantiates and uses SensorFusion and TrajectoryGenerator. See details below.
 

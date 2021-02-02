@@ -156,8 +156,7 @@ int SensorFusion::SelectTargetLane(EgoCar const& ego, Map const& map) {
   // consider center lane first
   if (max_free_dist > cfg::kKeepLaneAboveFreeDist
       && (current == center || IsLaneOpen(center, ego, map))) {
-    if (log)
-      cout << "<<" << endl;
+    if (log) cout << "<<" << endl;
     return center;
   }
 

@@ -6,7 +6,6 @@
 #include "ego_car.h"
 #include "helpers.h"
 #include "map.h"
-#include "pid.h"
 #include "tk_spline.h"
 
 using Spline = tk::spline;
@@ -96,7 +95,7 @@ class TrajectoryBuilder {
   double ref_x_ = -1.0;
   double ref_y_ = -1.0;
   double ref_yaw_ = -1.0;
-  double ref_speed_ = 0.0;
+  double ref_displacement_ = 0.0;
 };
 
 #endif  // TRAJECTORY_H

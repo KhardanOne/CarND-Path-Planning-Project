@@ -41,8 +41,6 @@ SplineDef::SplineDef(double x, double y, double yaw) {
   ys.push_back(y + delta_y);
 }
 
-// TODO: use more points if available
-// TODO: check for sudden changes
 void SplineDef::Extend(int target_lane, Map const& map, EgoCar const& ego) {
   // TODO: if GetFrenet() is just approximate (which probably is), then it causes jumps !!!!!!!!!!!!!!!!!!!!!!!!!!!!
   vector<double> far_wp0 = GetXY(ego.s + kFarPointDist1, LaneToD(target_lane), map);
@@ -54,7 +52,4 @@ void SplineDef::Extend(int target_lane, Map const& map, EgoCar const& ego) {
   ys.push_back(far_wp0[1]);
   ys.push_back(far_wp1[1]);
   ys.push_back(far_wp2[1]);
-  if (cfg::kDebug) {
-    //TrajectoryBuilder::IsMonotonic(xs, ys, ref_x, ref_y);
-  } 
 }

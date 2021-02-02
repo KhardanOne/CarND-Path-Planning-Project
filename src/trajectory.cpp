@@ -6,7 +6,6 @@
 #include "tk_spline.h"
 #include "config.h"
 #include "helpers.h"
-#include "pid.h"
 #include "spline_def.h"
 
 using std::min;
@@ -41,12 +40,15 @@ Spline TrajectoryBuilder::DefineSpline(int target_lane) const {
 }
 
 size_t TrajectoryBuilder::NumNodesToKeep(bool force_restart) const {
-  if (!force_restart && CanContinuePrevPath()) {
+  if (force_restart)
+    return 0;
+  if (CanContinuePrevPath()) {
     const size_t prev_node_count = sim_prev_.x_vals.size();
     const size_t nodes_to_keep = min(prev_node_count, (size_t)cfg::kTrajectoryMinNodeCount);
     return nodes_to_keep;
+  } else {
+    return 0;
   }
-  return 0;
 }
 
 size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
@@ -61,17 +63,14 @@ size_t TrajectoryBuilder::Create(vector<double>& out_x_vals,
   const double target_dist = max(front_car_dist, 0.0) - cfg::kCarLength - cfg::kBufferDist;
 
   // in-place stateless PD-Controller
-  const double pd_error_d   = (ego_.speed - front_car_speed) * cfg::kSimTimeStepS;
-  const double pd_out       = 0.1 * target_dist - 3.0 * pd_error_d;
-  const double throttle     = Crop(0.0,  pd_out, 1.0);
-  const double brake        = Crop(0.0, -pd_out, 1.0);
-  const double x_disp_accel = cfg::kPreferredDistPerFrameIncrement * throttle;  // triangle ratio omitted because close to 1.0
-  const double x_disp_decel = -cfg::kMaxDistPerFrameDecrement * brake;          // triangle ratio omitted because close to 1.0
-
-  static double prev_x_displacement = 0.0;
+  const double pd_error_d     = (ego_.speed - front_car_speed) * cfg::kSimTimeStepS;
+  const double pd_out         = 0.1 * target_dist - 3.0 * pd_error_d;
+  const double throttle       = Crop(0.0,  pd_out, 1.0);
+  const double brake          = Crop(0.0, -pd_out, 1.0);
+  const double x_disp_accel   = cfg::kPreferredDistPerFrameIncrement * throttle;  // triangle ratio omitted because close to 1.0
+  const double x_disp_decel   = -cfg::kMaxDistPerFrameDecrement * brake;          // triangle ratio omitted because close to 1.0
   const double x_displacement = max(0.0, min(cfg::kPreferredDistPerFrame,
-    prev_x_displacement + ((throttle > 0.0) ? x_disp_accel : x_disp_decel)));
-  prev_x_displacement = x_displacement;
+    ref_displacement_ + ((throttle > 0.0) ? x_disp_accel : x_disp_decel)));
 
   if (x_displacement > 0.00000001) {  // avoid having two points whith the same coords
     double x = 0.0;
@@ -139,20 +138,18 @@ void TrajectoryBuilder::TransformCoordsIntoRefSys(vector<double>& x_in_out_vals,
 }
 
 void TrajectoryBuilder::SetReferencePose() {
-  double ref_displacement = -1.0;
   if (kept_prev_nodes_count_ >= 3) {
     const size_t last = kept_prev_nodes_count_ - 1;
     ref_yaw_ = atan2(sim_prev_.y_vals[last] - sim_prev_.y_vals[last-1],
                      sim_prev_.x_vals[last] - sim_prev_.x_vals[last-1]);
     ref_x_ = sim_prev_.x_vals[last];
     ref_y_ = sim_prev_.y_vals[last];
-    ref_displacement = Distance(sim_prev_.x_vals[last-1], sim_prev_.y_vals[last-1],
-                                sim_prev_.x_vals[last], sim_prev_.y_vals[last]);
+    ref_displacement_ = Distance(sim_prev_.x_vals[last-1], sim_prev_.y_vals[last-1],
+                                 sim_prev_.x_vals[last], sim_prev_.y_vals[last]);
   } else {
     ref_yaw_ = ego_.yaw;
     ref_x_ = ego_.x;
     ref_y_ = ego_.y;
-    ref_displacement = ego_.speed * cfg::kSimTimeStepS;
+    ref_displacement_ = ego_.speed / cfg::kSimTimeStepS;
   }
-  ref_speed_ = ref_displacement / cfg::kSimTimeStepS;
 }

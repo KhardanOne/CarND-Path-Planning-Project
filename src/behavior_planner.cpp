@@ -3,10 +3,10 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <string>
 
 #include "config.h"
 #include "helpers.h"
-#include "pid.h"
 #include "sensor_fusion.h"
 #include "trajectory.h"
 
@@ -18,11 +18,48 @@ using std::min;
 using std::max;
 using std::cout;
 using std::endl;
+using std::string;
 using std::vector;
 
 BehaviorPlanner::BehaviorPlanner()
     : state_names_({"INVALID", "keep lane", "go left", "go right"}),
       state_(kKeepLane) {}
+
+bool BehaviorPlanner::ShouldConsiderLaneChanges(EgoCar const& ego,
+                                                double front_car_dist,
+                                                double front_car_speed,
+                                                bool verbose) const {
+  bool result = false;
+  string log_msg = "  ";
+  if (front_car_dist < 30.0) {
+    // catching up a car
+    const bool not_much_slower = ego.speed > front_car_speed - 1.5;
+    const bool not_much_faster = ego.speed < front_car_speed + 3.0;
+    const bool not_too_slow    = ego.speed > 8.0;
+    const bool not_too_close   = front_car_dist > 17.0;
+    result = not_much_slower && not_much_faster && not_too_slow && not_too_close;
+    if (verbose) {
+      log_msg.append("T ");
+      log_msg.append(not_much_slower ? "r" : "R");
+      log_msg.append(not_much_faster ? "f" : "F");
+      log_msg.append(not_too_slow    ? "s" : "S");
+      log_msg.append(not_too_close   ? "c" : "C");
+    }
+  } else {
+    // no car ahead
+    const bool not_too_slow    = ego.speed > 8.0;
+    result = not_too_slow;
+    if (verbose) {
+      log_msg.append("| ..");
+      log_msg.append(not_too_slow    ? "s." : "S.");
+    }
+  }
+  if (verbose) {
+    log_msg.append(result ? " check lanes" : " wait");
+    cout << log_msg << endl;
+  }
+  return result;
+}
 
 void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
                                     vector<double>& out_y_vals,
@@ -45,13 +82,9 @@ void BehaviorPlanner::GetTrajectory(vector<double>& out_x_vals,
 
     case kKeepLane: {
       if (log) cout << ": keep lane   ";
-      const bool consider_lane_change = 
-           ego.speed > front_car_speed - 1.5  // otherwise ego car is slowed down too much by PD controller
-        && ego.speed > 6.0                    // otherwise lane change could take too long
-        && ego.speed < front_car_speed + 5.0  // otherwise ego car possibly can get too close to the other car
-        && front_car_dist > 10.0;             // otherwise dangerously close
-
-      if (consider_lane_change) {
+      bool rare_log = (frame_count_ % 20 == 0);
+      if (rare_log) cout << "s:" << std::setw(9) << ego.s; // << " dist: " << front_car_dist << " dv: " << std::setw(12) << ego.speed - front_car_speed;
+      if (ShouldConsiderLaneChanges(ego, front_car_dist, front_car_speed, rare_log)) {
         target_lane_ = sf.SelectTargetLane(ego, map);
         if (target_lane_ > lane) {
           SwitchTo(kGoRight);
